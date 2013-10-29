@@ -56,7 +56,7 @@ if [ ! -d "/opt/vm-rebuilder" ];then
 fi
 
 # Get the VM-Rebuilder Tools
-git clone $GITHUB_URL/vm-rebuilder /opt/vm-rebuilder
+git clone $GITHUB_URL/rcbops_virt_builder /opt/vm-rebuilder
 
 # Enter the Directory
 pushd /opt/vm-rebuilder
