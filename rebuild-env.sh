@@ -180,20 +180,27 @@ function reset_chef_env() {
 }
 
 
-# Reconfigure Chef Server and Rabbit
+# Reconfigure All the things or Nothing
 # ==============================================================================
 function start_vm() {
-  reset_rabbitmq
-  reset_knife_rb
-  reset_chef_server
-  reset_chef_env
-  reset_motd
+  if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
+    echo "No System Changes Detected, Continuing with Regular Boot..."
+    exit 0
+  else
+    nova_endpoint_reset
+    reset_rabbitmq
+    reset_knife_rb
+    reset_chef_server
+    reset_chef_env
+    reset_motd
+  fi
 }
+
 
 # Stop the VM services
 # ==============================================================================
 function stop_vm() {
-  nova_endpoint_reset
+  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
 }
 
 case "$1" in
