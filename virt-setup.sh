@@ -75,7 +75,7 @@ ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
 if [ "${SYSTEM}" == "RHEL" ];then
   chkconfig rebuild-env on
 elif [ "${SYSTEM}" == "DEB" ];then
-  update-rc.d rebuild-env defaults 15
+  update-rc.d rebuild-env defaults 10
 fi
 }
 
