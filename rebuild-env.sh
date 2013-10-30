@@ -54,34 +54,18 @@ set -e
 function nova_endpoint_reset() {
   echo "Resetting Nova Endpoints"
   # Load the Openstack Credentials
-  source /root/openrc
-
-  KEYSTONE="False"
-
-  # Get all of the endpoints
-  ENDPOINTS=$(keystone endpoint-list | awk -v q='|' '/RegionOne/ {print $2q$6}')
-
-  # Destroy our Endpoints
-  for endpoint in ${ENDPOINTS};do
-    if [[ "$(echo \"${endpoint}\" | grep 5000)" ]];then
-      KEYSTONE="$(echo -e "${endpoint}" | awk -F'|' '{print $1}')"
-    else
-      keystone endpoint-delete "$(echo -e "${endpoint}" | awk -F'|' '{print $1}')"
-    fi
-  done
-
-  # Finally delete the keystone endpoint
-  if [ ! "${KEYSTONE}" == "False" ];then
-    keystone endpoint-delete ${KEYSTONE}
-  fi
+  MYSQLCRD="/root/.my.cnf"
+  USERNAME="$(awk -F'=' '/user/ {print $2}' ${MYSQLCRD})"
+  PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
+  NUKECMD="delete from endpoint where region=\"RegionOne\";"
+  mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
 }
 
 # Kill all the nova things
 # ==============================================================================
 function nova_kill() {
   # General Services
-  SERVICES="chef-server-webui erchef bookshelf chef apache mysql httpd libvirt "
-  SERVICES+="rabbitmq nginx cinder glance nova keystone ceilometer heat horizon"
+  SERVICES="cinder glance nova keystone ceilometer heat horizon"
 
   # Stop Service
   for service in ${SERVICES}; do
@@ -187,6 +171,7 @@ function start_vm() {
     echo "No System Changes Detected, Continuing with Regular Boot..."
     exit 0
   else
+    nova_kill
     nova_endpoint_reset
     reset_rabbitmq
     reset_knife_rb
