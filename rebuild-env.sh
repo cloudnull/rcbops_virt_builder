@@ -16,24 +16,24 @@
 #
 # Author Kevin.Carter@Rackspace.com
 
-# chkconfig: 2345 15 15
+# chkconfig: 35 10 10
 # Description: Build and Rebuild a virtual environment
 
 ### BEGIN INIT INFO
 # Provides: 
 # Required-Start: $remote_fs $network $syslog
 # Required-Stop: $remote_fs $syslog
-# Default-Start: 2 3 4 5
+# Default-Start: 3 5
 # Default-Stop: 0 1 6
 # Short-Description: Rackspace Appliance init script
 # Description: Build and Rebuild a virtual environment
 ### END INIT INFO
 
-# Set the Path 
-PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
+# Set HOME
+export HOME="/root"
 
-# What is the Name of this Script, and what are we starting
-PROGRAM="VM_REBUILDER"
+# Set the Path 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
 
 # Set the location of the script
 SCRIPT_DIR='/opt/vm-rebuilder'
@@ -41,8 +41,8 @@ SCRIPT_DIR='/opt/vm-rebuilder'
 # Set the systems IP ADDRESS
 SYS_IP=$(ohai ipaddress | awk '/^ / {gsub(/ *\"/, ""); print; exit}')
 
-# User, This should be root or root-ish
-USER="root"
+# What is the Name of this Script, and what are we starting
+PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 
 # ==============================================================================
 #           DO NOT EDIT THIS AREA UNLESS YOU KNOW WHAT YOU ARE DOING    
@@ -52,6 +52,7 @@ set -e
 # Reset nova endpoints
 # ==============================================================================
 function nova_endpoint_reset() {
+  echo "Resetting Nova Endpoints"
   # Load the Openstack Credentials
   source /root/openrc
 
@@ -94,26 +95,10 @@ function nova_kill() {
   done
 }
 
-# Rebuild Chef Environment
-# ==============================================================================
-function reset_chef_env() {
-  # Get the OLD Environment
-  knife environment show allinoneinone -fj | tee /tmp/old-knife-env.json
-
-  # Munge the OLD JSON Environment
-  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py /tmp/old-knife-env.json)
-
-  # Overwrite the OLD Environment with a  NEW environment
-  knife environment from file ${NEW_ENV}
-
-  # Run Chef-client to rebuild all the things
-  set -v
-  chef-client
-}
-
 # Rebuild Knife
 # ==============================================================================
 function reset_knife_rb() {
+  echo "Resetting Knife"
   # Create Chef Dir if not found
   if [ ! -d "/root/.chef" ];then
     mkdir -p /root/.chef
@@ -133,28 +118,10 @@ cookbook_path            [ '/opt/allinoneinone/chef-cookbooks/cookbooks' ]
 EOF
 }
 
-# Set MOTD with new information
-# ==============================================================================
-function reset_motd() {
-  # Change the Horizon URL in the MOTD
-  sed "s/Horizon URL is.*/Horizon URL is\t\t       : https:\/\/${SYS_IP}:443/" /etc/motd > /etc/motd2
-  mv /etc/motd2 /etc/motd
-
-  # Change the Chef URL in the MOTD
-  sed "s/Chef Server URL is.*/Chef Server URL is\t       : https:\/\/${SYS_IP}:4000/" /etc/motd > /etc/motd2
-  mv /etc/motd2 /etc/motd
-}
-
 # Reconfigure Chef Server and Rabbit
 # ==============================================================================
 function reset_chef_server() {
-  # Replace IP address for Rabbit
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=${SYS_IP}/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
-  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
-  
-  # Restart Rabbit
-  service rabbitmq-server start
-  
+  echo "Resetting Chef Server"
   # Reset client.rb
   cat > /etc/chef/client.rb <<EOF
 log_level        :auto
@@ -165,13 +132,60 @@ EOF
   
   # Reconfigure Chef-server
   chef-server-ctl reconfigure
+  chef-server-ctl restart
+  echo "Resting Post Chef Restart"
+  sleep 2
 }
+
+
+# Reconfigure RabbitMQ
+# ==============================================================================
+function reset_rabbitmq() {
+  echo "Resetting RabbitMQ"
+  # Replace IP address for Rabbit
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=${SYS_IP}/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
+  service rabbitmq-server restart
+}
+
+
+# Set MOTD with new information
+# ==============================================================================
+function reset_motd() {
+  echo "Resetting MOTD"
+  # Change the Horizon URL in the MOTD
+  sed "s/Horizon URL is.*/Horizon URL is\t\t       : https:\/\/${SYS_IP}:443/" /etc/motd > /etc/motd2
+  mv /etc/motd2 /etc/motd
+
+  # Change the Chef URL in the MOTD
+  sed "s/Chef Server URL is.*/Chef Server URL is\t       : https:\/\/${SYS_IP}:4000/" /etc/motd > /etc/motd2
+  mv /etc/motd2 /etc/motd
+}
+
+
+# Rebuild Chef Environment
+# ==============================================================================
+function reset_chef_env() {
+  echo "Resetting Chef Environment"
+  # Munge the OLD JSON Environment
+  COOKBOOK_DIR="/opt/allinoneinone/chef-cookbooks"
+  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${COOKBOOK_DIR}/allinoneinone.json)
+
+  # Overwrite the OLD Environment with a  NEW environment
+  knife environment from file ${NEW_ENV}
+
+  # Run Chef-client to rebuild all the things
+  set -v
+  chef-client
+}
+
 
 # Reconfigure Chef Server and Rabbit
 # ==============================================================================
 function start_vm() {
-  reset_chef_server
+  reset_rabbitmq
   reset_knife_rb
+  reset_chef_server
   reset_chef_env
   reset_motd
 }
@@ -191,7 +205,6 @@ case "$1" in
     set +e
     echo $PROGRAM is Shutting Down...
     stop_vm
-    nova_kill
   ;;
   restart)
     echo $PROGRAM is Restarting...
@@ -201,8 +214,13 @@ case "$1" in
     set -e
     start_vm
   ;;
+  nova-kill)
+    set -v
+    set -e
+    nova_kill
+  ;;
   *)
-    echo "Usage: $0 {start|stop|restart}" >&2
+    echo "Usage: $0 {start|stop|restart|nova-kill}" >&2
     exit 1
   ;;
 esac 
