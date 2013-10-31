@@ -201,6 +201,12 @@ function start_vm() {
 # ==============================================================================
 function stop_vm() {
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
+  SWAPFILE="/tmp/SwapFile"
+  if [ -f "${SWAPFILE}" ];then
+    swapoff -a
+    echo "Removing Swap File."
+    rm ${SWAPFILE}
+  fi
 }
 
 

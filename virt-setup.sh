@@ -53,6 +53,22 @@ EOF
   fi
 }
 
+# Make sure we have a swap file
+# ==========================================================================
+function setup_dymanicswap() {
+  if [ ! "$(swapon -s | grep -v Filename)" ];then
+    cat >> /etc/rc.local <<EOF
+SWAPFILE="/tmp/SwapFile"
+if [ -f "\${SWAPFILE}" ];then
+  rm \${SWAPFILE}
+fi
+dd if=/dev/zero of=\${SWAPFILE} bs=1M count=512
+mkswap -c \${SWAPFILE} 512
+swapon \${SWAPFILE}
+EOF
+  fi
+}
+
 # Setup the box for AIO use
 # ==========================================================================
 function setup_grub() {
@@ -164,5 +180,8 @@ setup_grub
 
 # Set the Login Banner
 setup_banner
+
+# Set The Dynamic Swap 
+setup_dymanicswap
 
 exit 0
