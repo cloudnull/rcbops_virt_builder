@@ -293,7 +293,6 @@ case "$1" in
     package_prep
     run_chef_client
     clear_cache
-    hard_stop
     reset_rabbitmq_local_only
     hard_stop
   ;;
