@@ -44,8 +44,9 @@ def _get_network(json_data, interface):
 
 if __name__ == '__main__':
     # Run the Munger
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         input_file = sys.argv[1]
+        ip_address = sys.argv[2]
     else:
         raise SystemExit('No Arguments Input file specified.')
 
@@ -74,10 +75,14 @@ if __name__ == '__main__':
 
     # Get Overrides
     overrides = chef_env.get('override_attributes')
-    
+
+    # Set Rabbit Bind Address
+    rabbit = overrides.get('rabbitmq')
+    rabbit['address'] = ip_address
+
     # Set MySQL Bind Address
     mysql = overrides.get('mysql')
-    mysql['bind_address'] = "0.0.0.0"
+    mysql['bind_address'] = '0.0.0.0'
 
     # Get Networks
     networks = overrides.get('osops_networks')

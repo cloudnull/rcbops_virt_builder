@@ -1,0 +1,113 @@
+{
+  "chef_type": "environment", 
+  "default_attributes": {}, 
+  "description": "OpenStack Test All-In-One Deployment in One Server", 
+  "override_attributes": {
+    "monitoring": {
+      "procmon_provider": "monit", 
+      "metric_provider": "collectd"
+    }, 
+    "enable_monit": true, 
+    "osops_networks": {
+      "management": "127.0.0.0/24", 
+      "public": "127.0.0.0/24", 
+      "nova": "127.0.0.0/24"
+    }, 
+    "rabbitmq": {
+      "address": "0.0.0.0", 
+      "erlang_cookie": "ZNSPYZUMYQFXEUZSSRJW"
+    }, 
+    "keystone": {
+      "pki": {
+        "enabled": true
+      }, 
+      "tenants": [
+        "service", 
+        "admin"
+      ], 
+      "users": {
+        "admin": {
+          "password": "secrete", 
+          "role": {
+            "admin": [
+              "admin"
+            ]
+          }
+        }
+      }, 
+      "admin_user": "admin"
+    }, 
+    "nova": {
+      "libvirt": {
+        "vncserver_listen": "0.0.0.0", 
+        "virt_type": "qemu"
+      }, 
+      "config": {
+        "disk_allocation_ratio": 1.0, 
+        "use_single_default_gateway": false, 
+        "ram_allocation_ratio": 1.0, 
+        "cpu_allocation_ratio": 2.0, 
+        "resume_guests_state_on_host_boot": false
+      }, 
+      "networks": {
+        "public": {
+          "bridge": "br0", 
+          "network_size": "255", 
+          "dns2": "8.8.4.4", 
+          "dns1": "8.8.8.8", 
+          "ipv4_cidr": "172.16.0.0/16", 
+          "num_networks": "1", 
+          "label": "public", 
+          "bridge_dev": "eth0"
+        }, 
+        "private": {
+          "bridge": "br1", 
+          "network_size": "255", 
+          "dns2": "8.8.4.4",
+          "dns1": "8.8.8.8",
+          "ipv4_cidr": "192.168.0.0/24",
+          "num_networks": "1",
+          "label": "private",
+          "bridge_dev": "eth1"
+        }
+      },
+      "scheduler": {
+        "default_filters": [
+          "AvailabilityZoneFilter",
+          "ComputeFilter",
+          "RetryFilter"
+        ]
+      },
+      "network": {
+        "multi_host": true,
+        "public_interface": "br0"
+      }
+    },
+    "mysql": {
+      "allow_remote_root": true,
+      "bind_address": "0.0.0.0",
+      "root_network_acl": "%",
+      "tunable": {
+        "log_queries_not_using_index": false
+      }
+    },
+    "glance": {
+      "images": [
+        "cirros",
+        "precise",
+        "fedora"
+      ],
+      "image": {
+        "precise": "http://cloud-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img",
+        "cirros": "https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img",
+        "fedora": "http://download.fedoraproject.org/pub/fedora/linux/releases/19/Images/x86_64/Fedora-x86_64-19-20130627-sda.qcow2"
+      },
+      "image_upload": true
+    },
+    "do_package_upgrades": true,
+    "developer_mode": false
+  },
+  "cookbook_versions": {},
+  "json_class": "Chef::Environment",
+  "name": "allinoneinone"
+}

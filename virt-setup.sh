@@ -25,6 +25,53 @@ set -u
 # Make things verbose
 set -v
 
+# Setup Banner
+# ==========================================================================
+function setup_banner() {
+  ln -f -s /etc/motd /etc/issue
+}
+
+# Setup the box for AIO use
+# ==========================================================================
+function setup_bootspash() {
+  if [ -f "/lib/plymouth/themes/ubuntu-text/ubuntu-text.plymouth" ];then
+    cat > /lib/plymouth/themes/ubuntu-text/ubuntu-text.plymouth <<EOF
+[Plymouth Theme]
+Name=Ubuntu Text
+Description=Text mode theme based on ubuntu-logo theme
+ModuleName=ubuntu-text
+
+[ubuntu-text]
+title=Rackspace (TM) Private Cloud
+black=0x000000
+white=0xffffff
+brown=0xff4012
+blue=0x988592
+EOF
+
+    update-initramfs -u
+  fi
+}
+
+# Setup the box for AIO use
+# ==========================================================================
+function setup_grub() {
+  if [ -f "/etc/default/grub" ];then
+    cat > /etc/default/grub <<EOF
+GRUB_DEFAULT=0
+GRUB_HIDDEN_TIMEOUT=0
+GRUB_HIDDEN_TIMEOUT_QUIET=true
+GRUB_TIMEOUT=2
+GRUB_DISTRIBUTOR="Rackspace Private Cloud"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
+GRUB_CMDLINE_LINUX=""
+GRUB_RECORDFAIL_TIMEOUT=1
+EOF
+
+    update-grub
+  fi
+}
+
 # Setup the box for AIO use
 # ==========================================================================
 function run_aio_script() {
@@ -75,7 +122,7 @@ ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
 if [ "${SYSTEM}" == "RHEL" ];then
   chkconfig rebuild-env on
 elif [ "${SYSTEM}" == "DEB" ];then
-  update-rc.d rebuild-env defaults 10
+  update-rc.d rebuild-env defaults 20
 fi
 }
 
@@ -100,5 +147,14 @@ run_aio_script
 
 # Get and Setup the Virt Tools
 virt_tools_setup
+
+# Set Boot Splash
+setup_bootspash
+
+# Set Grub2
+setup_grub
+
+# Set the Login Banner
+setup_banner
 
 exit 0

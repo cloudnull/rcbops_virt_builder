@@ -16,14 +16,14 @@
 #
 # Author Kevin.Carter@Rackspace.com
 
-# chkconfig: 35 10 10
+# chkconfig: 2345 20 20
 # Description: Build and Rebuild a virtual environment
 
 ### BEGIN INIT INFO
 # Provides: 
 # Required-Start: $remote_fs $network $syslog
 # Required-Stop: $remote_fs $syslog
-# Default-Start: 3 5
+# Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: Rackspace Appliance init script
 # Description: Build and Rebuild a virtual environment
@@ -153,7 +153,8 @@ function reset_chef_env() {
   echo "Resetting Chef Environment"
   # Munge the OLD JSON Environment
   COOKBOOK_DIR="/opt/allinoneinone/chef-cookbooks"
-  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${COOKBOOK_DIR}/allinoneinone.json)
+  ORIG_JSON="${SCRIPT_DIR}/base.json"
+  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP})
 
   # Overwrite the OLD Environment with a  NEW environment
   knife environment from file ${NEW_ENV}
@@ -167,18 +168,12 @@ function reset_chef_env() {
 # Reconfigure All the things or Nothing
 # ==============================================================================
 function start_vm() {
-  if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
-    echo "No System Changes Detected, Continuing with Regular Boot..."
-    exit 0
-  else
-    nova_kill
-    nova_endpoint_reset
-    reset_rabbitmq
-    reset_knife_rb
-    reset_chef_server
-    reset_chef_env
-    reset_motd
-  fi
+  nova_endpoint_reset
+  reset_rabbitmq
+  reset_knife_rb
+  reset_chef_server
+  reset_chef_env
+  reset_motd
 }
 
 
@@ -188,31 +183,56 @@ function stop_vm() {
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
 }
 
+
+# Check before Rebuilding
+# ==============================================================================
+function rebuild_check() {
+  if [ -f "/opt/last.ip.lock" ];then
+    if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
+      echo "No System Changes Detected, Continuing with Regular Boot..."
+      exit 0
+    fi
+  else
+    echo "Lock File not found..."
+  fi
+}
+
 case "$1" in
   start)
+    clear
     echo $PROGRAM is Initializing... 
+    rebuild_check
     start_vm
   ;;
   stop)
-    set +e
     echo $PROGRAM is Shutting Down...
     stop_vm
   ;;
   restart)
     echo $PROGRAM is Restarting...
-    set +e
     stop_vm
-
-    set -e
+    rebuild_check
     start_vm
   ;;
-  nova-kill)
+  os-kill)
     set -v
-    set -e
+    set +e
     nova_kill
   ;;
+  force-rebuild)
+    set +e
+    reset_rabbitmq
+    reset_knife_rb
+    reset_chef_server
+    reset_chef_env
+    reset_motd
+  ;;
+  nuke-endpoints)
+    set +e
+    nova_endpoint_reset
+  ;;
   *)
-    echo "Usage: $0 {start|stop|restart|nova-kill}" >&2
+    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild}" >&2
     exit 1
   ;;
 esac 
