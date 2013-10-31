@@ -97,19 +97,27 @@ function run_aio_script() {
 # Get and setup the virt tools
 # ==========================================================================
 function virt_tools_setup() {
+REBUILDER_DIR="/opt/vm-rebuilder"
+
 # Make the scripts directory
-if [ ! -d "/opt/vm-rebuilder" ];then
-  mkdir -p /opt/vm-rebuilder
+if [ ! -d "${REBUILDER_DIR}" ];then
+  mkdir -p ${REBUILDER_DIR}
+
+  # Get the VM-Rebuilder Tools
+  git clone $GITHUB_URL/rcbops_virt_builder ${REBUILDER_DIR}
+else
+  if [ ! -d "${REBUILDER_DIR}/.git" ];then
+    rm -rf ${REBUILDER_DIR}
+    git clone $GITHUB_URL/rcbops_virt_builder ${REBUILDER_DIR}
+  fi
 fi
 
-# Get the VM-Rebuilder Tools
-git clone $GITHUB_URL/rcbops_virt_builder /opt/vm-rebuilder
-
 # Enter the Directory
-pushd /opt/vm-rebuilder
+pushd ${REBUILDER_DIR}
 
-chmod +x rebuild-env.sh
-chmod +x env-rebuilder.py
+git pull origin master
+chmod +x *.sh
+chmod +x *.py
 
 # Leave the Directory
 popd
