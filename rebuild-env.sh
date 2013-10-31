@@ -64,6 +64,7 @@ function nova_endpoint_reset() {
 # Kill all the nova things
 # ==============================================================================
 function nova_kill() {
+  set +e
   # General Services
   SERVICES="cinder glance nova keystone ceilometer heat horizon"
 
@@ -77,6 +78,7 @@ function nova_kill() {
       fi
     done
   done
+  set -e
 }
 
 # Rebuild Knife
@@ -194,14 +196,6 @@ function run_chef_client() {
 # Clear all of the cache things we can find
 # ==============================================================================
 function clear_cache() {
-  if [ -d "/var/chef/cache/cookbooks/" ];then
-    for chef_dir in /var/chef/cache/cookbooks/*;do 
-      rm -rf ${chef_dir}
-    done
-  fi
-  if [ -f "/var/chef/cache/rabbitmq-server_3.1.5-1_all.deb" ];then
-    rm /var/chef/cache/rabbitmq-server_3.1.5-1_all.deb
-  fi
   find / -name '*.deb' -exec rm {} \;
   apt-get clean
 }
@@ -231,10 +225,22 @@ function stop_vm() {
   fi
 }
 
+function zero_fill() {
+  echo "Performing A Zero Fill"
+  set +e
+  pushd /tmp
+  cat /dev/zero > zero.fill
+  sync
+  sleep 1
+  sync
+  rm -f zero.fill
+  sync
+  popd
+  set -e
+}
 
 function hard_stop() {
   echo "Shutting Down The System"
-  sync
   echo 1 > /proc/sys/kernel/sysrq 
   echo o > /proc/sysrq-trigger
 }
@@ -271,8 +277,6 @@ case "$1" in
     start_vm
   ;;
   os-kill)
-    set -v
-    set +e
     nova_kill
   ;;
   force-rebuild)
@@ -289,11 +293,13 @@ case "$1" in
     nova_endpoint_reset
   ;;
   package-instance)
+    nova_kill
     nova_endpoint_reset
     package_prep
     run_chef_client
     clear_cache
     reset_rabbitmq_local_only
+    zero_fill
     hard_stop
   ;;
   *)
