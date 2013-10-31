@@ -167,6 +167,9 @@ function package_prep() {
   ORIG_JSON="${SCRIPT_DIR}/base.json"
   NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP} "override")
   # Overwrite the OLD Environment with BASE environment
+  if [ -f "/opt/last.ip.lock" ];then
+    rm /opt/last.ip.lock
+  fi
   knife environment from file ${NEW_ENV}
   echo '' | tee /root/.bash_history
   history -c
@@ -255,7 +258,9 @@ case "$1" in
     run_chef_client
     reset_rabbitmq
     echo "Shutting Down The System, Package Prep Complete."
-    shutdown -P now
+    sync
+    echo 1 > /proc/sys/kernel/sysrq 
+    echo o > /proc/sysrq-trigger
   ;;
   *)
     echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|package-instance}" >&2
