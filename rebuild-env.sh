@@ -151,17 +151,33 @@ function reset_motd() {
 # ==============================================================================
 function reset_chef_env() {
   echo "Resetting Chef Environment"
-  # Munge the OLD JSON Environment
-  COOKBOOK_DIR="/opt/allinoneinone/chef-cookbooks"
+  # Munge the Base JSON Environment
   ORIG_JSON="${SCRIPT_DIR}/base.json"
   NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP})
 
   # Overwrite the OLD Environment with a  NEW environment
   knife environment from file ${NEW_ENV}
+}
 
+
+# Package For Distribution
+# ==============================================================================
+function package_prep() {
+  echo "Performing package prep"
+  ORIG_JSON="${SCRIPT_DIR}/base.json"
+  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP} "override")
+  # Overwrite the OLD Environment with BASE environment
+  knife environment from file ${NEW_ENV}
+  echo '' | tee /root/.bash_history
+  history -c
+}
+
+
+function run_chef_client() {
   # Run Chef-client to rebuild all the things
   set -v
   chef-client
+  set +v
 }
 
 
@@ -173,6 +189,7 @@ function start_vm() {
   reset_knife_rb
   reset_chef_server
   reset_chef_env
+  run_chef_client
   reset_motd
 }
 
@@ -225,14 +242,23 @@ case "$1" in
     reset_knife_rb
     reset_chef_server
     reset_chef_env
+    run_chef_client
     reset_motd
   ;;
   nuke-endpoints)
     set +e
     nova_endpoint_reset
   ;;
+  package-instance)
+    nova_endpoint_reset
+    package_prep
+    run_chef_client
+    reset_rabbitmq
+    echo "Shutting Down The System, Package Prep Complete."
+    shutdown -P now
+  ;;
   *)
-    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild}" >&2
+    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|package-instance}" >&2
     exit 1
   ;;
 esac 

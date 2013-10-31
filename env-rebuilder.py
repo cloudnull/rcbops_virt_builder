@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 
-def _get_network(json_data, interface):
+def _get_network(json_data, interface, override=False):
     """Get and set network interfaces."""
 
     device = json_data['network']['interfaces'].get(interface)
@@ -34,12 +34,15 @@ def _get_network(json_data, interface):
             routes = device['routes']
             for net in routes:
                 if 'scope' in net:
-                    return net.get('destination', '127.0.0.0/8')
+                    if override is True:
+                        return '127.0.0.0/24'
+                    else:
+                        return net.get('destination', '127.0.0.0/24')
                     break
         else:
-            return '127.0.0.0/8'
+            return '127.0.0.0/24'
     else:
-        return '127.0.0.0/8'
+        return '127.0.0.0/24'
 
 
 if __name__ == '__main__':
@@ -47,9 +50,12 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         input_file = sys.argv[1]
         ip_address = sys.argv[2]
+        if len(sys.argv) == 4:
+            override = True
+        else:
+            override = False
     else:
         raise SystemExit('No Arguments Input file specified.')
-
 
     # Open Ohai and get some data
     ohai_popen = subprocess.Popen(
@@ -61,13 +67,19 @@ if __name__ == '__main__':
     data = json.loads(ohai[0])
 
     # Set Management Network Interfaces
-    management_network = _get_network(json_data=data, interface="eth0")
+    management_network = _get_network(
+        json_data=data, interface="eth0", override=override
+    )
 
     # Set Nova Network Interfaces
-    nova_network = _get_network(json_data=data, interface="eth0")
+    nova_network = _get_network(
+        json_data=data, interface="eth0", override=override
+    )
 
     # Set Public Network Interfaces
-    public_network = _get_network(json_data=data, interface="eth0")
+    public_network = _get_network(
+        json_data=data, interface="eth0", override=override
+    )
 
     # Open passed JSON file
     with open(input_file, 'rb') as knife_env:
@@ -76,9 +88,15 @@ if __name__ == '__main__':
     # Get Overrides
     overrides = chef_env.get('override_attributes')
 
-    # Set Rabbit Bind Address
+    # Set Rabbit Bind Address and Cookie
     rabbit = overrides.get('rabbitmq')
     rabbit['address'] = ip_address
+    if os.path.exists('/var/lib/rabbitmq/.erlang.cookie'):
+        with open('/var/lib/rabbitmq/.erlang.cookie', 'r') as erlang_cookie:
+            rabbit_cookie = erlang_cookie.read()        
+    else:
+        rabbit_cookie = 'AnyStringWillDoJustFine'
+    rabbit['erlang_cookie'] = rabbit_cookie
 
     # Set MySQL Bind Address
     mysql = overrides.get('mysql')
