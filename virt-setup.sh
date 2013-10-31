@@ -62,8 +62,8 @@ SWAPFILE="/tmp/SwapFile"
 if [ -f "\${SWAPFILE}" ];then
   rm \${SWAPFILE}
 fi
-dd if=/dev/zero of=\${SWAPFILE} bs=1M count=512
-mkswap -c \${SWAPFILE} 512
+dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
+mkswap \${SWAPFILE}
 swapon \${SWAPFILE}
 EOF
   fi
