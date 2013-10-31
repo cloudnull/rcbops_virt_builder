@@ -132,6 +132,14 @@ function reset_rabbitmq() {
   service rabbitmq-server restart
 }
 
+function reset_rabbitmq_local_only() {
+  echo "Resetting RabbitMQ to localhost"
+  # Replace IP address for Rabbit
+  service rabbitmq-server stop
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=127.0.0.1/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
+}
+
 
 # Set MOTD with new information
 # ==============================================================================
@@ -183,6 +191,20 @@ function run_chef_client() {
   set +v
 }
 
+# Clear all of the cache things we can find
+# ==============================================================================
+function clear_cache() {
+  if [ -d "/var/chef/cache/cookbooks/" ];then
+    for chef_dir in /var/chef/cache/cookbooks/*;do 
+      rm -rf ${chef_dir}
+    done
+  fi
+  if [ -f "/var/chef/cache/rabbitmq-server_3.1.5-1_all.deb" ];then
+    rm /var/chef/cache/rabbitmq-server_3.1.5-1_all.deb
+  fi
+  find / -name '*.deb' -exec rm {} \;
+  apt-get clean
+}
 
 # Reconfigure All the things or Nothing
 # ==============================================================================
@@ -207,6 +229,14 @@ function stop_vm() {
     echo "Removing Swap File."
     rm ${SWAPFILE}
   fi
+}
+
+
+function hard_stop() {
+  echo "Shutting Down The System"
+  sync
+  echo 1 > /proc/sys/kernel/sysrq 
+  echo o > /proc/sysrq-trigger
 }
 
 
@@ -262,11 +292,10 @@ case "$1" in
     nova_endpoint_reset
     package_prep
     run_chef_client
-    reset_rabbitmq
-    echo "Shutting Down The System, Package Prep Complete."
-    sync
-    echo 1 > /proc/sys/kernel/sysrq 
-    echo o > /proc/sysrq-trigger
+    clear_cache
+    hard_stop
+    reset_rabbitmq_local_only
+    hard_stop
   ;;
   *)
     echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|package-instance}" >&2
