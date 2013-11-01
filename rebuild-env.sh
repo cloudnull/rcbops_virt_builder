@@ -196,7 +196,6 @@ function run_chef_client() {
 # Clear all of the cache things we can find
 # ==============================================================================
 function clear_cache() {
-  find / -name '*.deb' -exec rm {} \;
   apt-get clean
 }
 
