@@ -315,6 +315,7 @@ case "$1" in
     run_chef_client
     clear_cache
     reset_rabbitmq_local_only
+    nova_kill
     stop_swap
     zero_fill
     hard_stop
