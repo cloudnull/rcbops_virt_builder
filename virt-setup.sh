@@ -56,11 +56,12 @@ EOF
 # Make sure we have a swap file
 # ==========================================================================
 function setup_dymanicswap() {
-  REBUILDER_DIR="/opt/vm-rebuilder"
   if [ ! "$(swapon -s | grep -v Filename)" ];then
-    cat >> ${REBUILDER_DIR}/swap.sh <<EOF
+    cat > /opt/swap.sh <<EOF
+#!/usr/bin/env bash
 SWAPFILE="/tmp/SwapFile"
 if [ -f "\${SWAPFILE}" ];then
+  swapoff -a
   rm \${SWAPFILE}
 fi
 dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
@@ -68,8 +69,8 @@ mkswap \${SWAPFILE}
 swapon \${SWAPFILE}
 EOF
 
-    chmod +x ${REBUILDER_DIR}/swap.sh
-    ${REBUILDER_DIR}/swap.sh
+    chmod +x /opt/swap.sh
+    /opt/swap.sh
   fi
 }
 
@@ -121,8 +122,8 @@ function run_aio_script() {
   # Leave the Directory
   popd
   
-  if [ -f "${REBUILDER_DIR}/swap.sh" ];then
-    echo "${REBUILDER_DIR}/swap.sh" | tee -a /etc/rc.local
+  if [ -f "/opt/swap.sh" ];then
+    echo "/opt/swap.sh" | tee -a /etc/rc.local
   fi
 }
 
