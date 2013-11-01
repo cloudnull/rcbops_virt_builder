@@ -88,6 +88,13 @@ EOF
   fi
 }
 
+# Blacklist SMBus Controller for VM
+function blacklist_modules() {
+  # This is a VM blacklist
+  echo 'blacklist i2c_piix4' | tee -a /etc/modprobe.d/blacklist.conf
+  update-initramfs -u -k all
+}
+
 # Setup the box for AIO use
 # ==========================================================================
 function run_aio_script() {
