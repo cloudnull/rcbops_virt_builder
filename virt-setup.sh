@@ -121,7 +121,11 @@ function run_aio_script() {
   else
     source master_dev.rc
   fi
-  
+
+  # Add bolt on images
+  export FEDORA_IMAGE=True
+  export UBUNTU_IMAGE=True
+
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory
