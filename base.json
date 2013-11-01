@@ -15,7 +15,7 @@
     }, 
     "rabbitmq": {
       "address": "0.0.0.0", 
-      "erlang_cookie": "ZNSPYZUMYQFXEUZSSRJW"
+      "erlang_cookie": ""
     }, 
     "keystone": {
       "pki": {
