@@ -56,8 +56,9 @@ EOF
 # Make sure we have a swap file
 # ==========================================================================
 function setup_dymanicswap() {
+  REBUILDER_DIR="/opt/vm-rebuilder"
   if [ ! "$(swapon -s | grep -v Filename)" ];then
-    cat >> /etc/rc.local <<EOF
+    cat >> ${REBUILDER_DIR}/swap.sh <<EOF
 SWAPFILE="/tmp/SwapFile"
 if [ -f "\${SWAPFILE}" ];then
   rm \${SWAPFILE}
@@ -66,6 +67,9 @@ dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
 mkswap \${SWAPFILE}
 swapon \${SWAPFILE}
 EOF
+
+    chmod +x ${REBUILDER_DIR}/swap.sh
+    ${REBUILDER_DIR}/swap.sh
   fi
 }
 
@@ -89,6 +93,7 @@ EOF
 }
 
 # Blacklist SMBus Controller for VM
+# ==========================================================================
 function blacklist_modules() {
   # This is a VM blacklist
   echo 'blacklist i2c_piix4' | tee -a /etc/modprobe.d/blacklist.conf
@@ -115,46 +120,50 @@ function run_aio_script() {
 
   # Leave the Directory
   popd
+  
+  if [ -f "${REBUILDER_DIR}/swap.sh" ];then
+    echo "${REBUILDER_DIR}/swap.sh" | tee -a /etc/rc.local
+  fi
 }
 
 # Get and setup the virt tools
 # ==========================================================================
 function virt_tools_setup() {
-REBUILDER_DIR="/opt/vm-rebuilder"
+  REBUILDER_DIR="/opt/vm-rebuilder"
 
-# Make the scripts directory
-if [ ! -d "${REBUILDER_DIR}" ];then
-  mkdir -p ${REBUILDER_DIR}
+  # Make the scripts directory
+  if [ ! -d "${REBUILDER_DIR}" ];then
+    mkdir -p ${REBUILDER_DIR}
 
-  # Get the VM-Rebuilder Tools
-  git clone $GITHUB_URL/rcbops_virt_builder ${REBUILDER_DIR}
-else
-  if [ ! -d "${REBUILDER_DIR}/.git" ];then
-    rm -rf ${REBUILDER_DIR}
+    # Get the VM-Rebuilder Tools
     git clone $GITHUB_URL/rcbops_virt_builder ${REBUILDER_DIR}
+  else
+    if [ ! -d "${REBUILDER_DIR}/.git" ];then
+      rm -rf ${REBUILDER_DIR}
+      git clone $GITHUB_URL/rcbops_virt_builder ${REBUILDER_DIR}
+    fi
   fi
-fi
 
-# Enter the Directory
-pushd ${REBUILDER_DIR}
+  # Enter the Directory
+  pushd ${REBUILDER_DIR}
 
-git pull origin master
-chmod +x *.sh
-chmod +x *.py
+  git pull origin master
+  chmod +x *.sh
+  chmod +x *.py
 
-# Leave the Directory
-popd
+  # Leave the Directory
+  popd
 
 
-# Make the symlink
-ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
-  
-# Setup the init script
-if [ "${SYSTEM}" == "RHEL" ];then
-  chkconfig rebuild-env on
-elif [ "${SYSTEM}" == "DEB" ];then
-  update-rc.d rebuild-env defaults 20
-fi
+  # Make the symlink
+  ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
+    
+  # Setup the init script
+  if [ "${SYSTEM}" == "RHEL" ];then
+    chkconfig rebuild-env on
+  elif [ "${SYSTEM}" == "DEB" ];then
+    update-rc.d rebuild-env defaults 20
+  fi
 }
 
 # OS Check
@@ -173,6 +182,9 @@ fi
 # Set git URL
 GITHUB_URL="https://github.com/cloudnull"
 
+# Set The Dynamic Swap 
+setup_dymanicswap
+
 # Get and Run the AIO Script
 run_aio_script
 
@@ -187,8 +199,5 @@ setup_grub
 
 # Set the Login Banner
 setup_banner
-
-# Set The Dynamic Swap 
-setup_dymanicswap
 
 exit 0
