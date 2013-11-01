@@ -116,7 +116,12 @@ function run_aio_script() {
   pushd /opt/aio-script
 
   # Source our Options
-  source master_dev.rc
+  if [ "${USE_NEUTRON}" == "True" ];then
+    source master_neutron_dev.rc
+  else
+    source master_dev.rc
+  fi
+  
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory
@@ -152,6 +157,14 @@ function virt_tools_setup() {
   chmod +x *.sh
   chmod +x *.py
 
+  if [ -f "/opt/allinoneinone/chef-cookbooks/allinoneinone.json" ];then
+    if [ -f "/opt/vm-rebuilder/base.json" ];then
+      rm /opt/vm-rebuilder/base.json
+    fi
+    # Move the the aio JSON to the base
+    cp /opt/allinoneinone/chef-cookbooks/allinoneinone.json /opt/vm-rebuilder/base.json
+  fi
+  
   # Leave the Directory
   popd
 
@@ -182,6 +195,9 @@ fi
 
 # Set git URL
 GITHUB_URL="https://github.com/cloudnull"
+
+# Set if you want to use Neutron; True||False. Default is False.
+USE_NEUTRON=${USE_NEUTRON:-"False"}
 
 # Set The Dynamic Swap 
 setup_dymanicswap
