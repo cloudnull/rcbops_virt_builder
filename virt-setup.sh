@@ -198,7 +198,7 @@ else
 fi
 
 # Set git URL
-GITHUB_URL="https://github.com/cloudnull"
+GITHUB_URL=${GITHUB_URL:-"https://github.com/cloudnull"}
 
 # Set if you want to use Neutron; True||False. Default is False.
 USE_NEUTRON=${USE_NEUTRON:-"False"}
