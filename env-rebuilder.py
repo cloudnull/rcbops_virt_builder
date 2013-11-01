@@ -37,8 +37,15 @@ def _get_network(json_data, interface, override=False):
                     if override is True:
                         return '127.0.0.0/24'
                     else:
-                        return net.get('destination', '127.0.0.0/24')
+                        cidr = net.get('destination', '127.0.0.0/24')
+                        print cidr
+                        if cidr is None:
+                            return '127.0.0.0/24'
+                        else:
+                            return cidr
                     break
+            else:
+                return '127.0.0.0/24'
         else:
             return '127.0.0.0/24'
     else:
