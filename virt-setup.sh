@@ -201,4 +201,7 @@ setup_grub
 # Set the Login Banner
 setup_banner
 
+# Blacklist Modules
+blacklist_modules
+
 exit 0
