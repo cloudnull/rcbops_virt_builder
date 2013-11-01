@@ -302,7 +302,7 @@ case "$1" in
     hard_stop
   ;;
   *)
-    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|package-instance}" >&2
+    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|nuke-endpoints|package-instance}" >&2
     exit 1
   ;;
 esac 
