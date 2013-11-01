@@ -202,6 +202,7 @@ function clear_cache() {
 # Reconfigure All the things or Nothing
 # ==============================================================================
 function start_vm() {
+  start_swap
   nova_endpoint_reset
   reset_rabbitmq
   reset_knife_rb
@@ -221,6 +222,19 @@ function stop_swap() {
     echo "Removing Swap File."
     rm ${SWAPFILE}
   fi
+}
+
+
+# Disable Swap
+# ==============================================================================
+function start_swap() {
+  # Enable swap from script
+  if [ -f "/opt/swap.sh" ];then
+    /opt/swap.sh
+  fi
+  
+  # Enable all the swaps
+  swapon -a
 }
 
 
