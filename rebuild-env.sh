@@ -237,11 +237,13 @@ function zero_fill() {
   cat /dev/zero > zero.fill
   sync
   sleep 1
-  sync
   rm -f zero.fill
   sync
+  sleep 1
   popd
   set -e
+  sync
+  sleep 1
 }
 
 function hard_stop() {
@@ -287,19 +289,13 @@ case "$1" in
   ;;
   force-rebuild)
     set +e
-    reset_rabbitmq
-    reset_knife_rb
-    reset_chef_server
-    reset_chef_env
-    run_chef_client
-    reset_motd
+    start_vm
   ;;
   nuke-endpoints)
     set +e
     nova_endpoint_reset
   ;;
   package-instance)
-    nova_kill
     nova_endpoint_reset
     package_prep
     run_chef_client
