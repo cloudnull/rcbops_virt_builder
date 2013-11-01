@@ -212,16 +212,22 @@ function start_vm() {
 }
 
 
-# Stop the VM services
+# Disable Swap
 # ==============================================================================
-function stop_vm() {
-  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
+function stop_swap() {
   SWAPFILE="/tmp/SwapFile"
   if [ -f "${SWAPFILE}" ];then
     swapoff -a
     echo "Removing Swap File."
     rm ${SWAPFILE}
   fi
+}
+
+
+# Stop the VM services
+# ==============================================================================
+function stop_vm() {
+  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
 }
 
 function zero_fill() {
@@ -268,6 +274,7 @@ case "$1" in
   stop)
     echo $PROGRAM is Shutting Down...
     stop_vm
+    stop_swap
   ;;
   restart)
     echo $PROGRAM is Restarting...
@@ -299,6 +306,7 @@ case "$1" in
     clear_cache
     reset_rabbitmq_local_only
     zero_fill
+    stop_swap
     hard_stop
   ;;
   *)
