@@ -123,7 +123,7 @@ function run_aio_script() {
   fi
 
   # Add bolt on images
-  export RUN_LIST+="role[heat-all],role[ceilometer-all]"
+  export RUN_LIST+=",role[heat-all],role[ceilometer-all]"
   export FEDORA_IMAGE=True
   export UBUNTU_IMAGE=True
   
