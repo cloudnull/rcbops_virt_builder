@@ -70,5 +70,9 @@ Here is how you can get Started
 2. Execute the script `virt-setup.sh`
 
 
+If you would like to use Neutron set:
+`export USE_NEUTRON=True`
+
+
 NOTICE: I WOULD NOT RECOMMEND USING THIS IN PRODUCTION!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
