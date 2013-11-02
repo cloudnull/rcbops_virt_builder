@@ -114,7 +114,7 @@ function run_aio_script() {
 
   # Enter the Directory
   pushd /opt/aio-script
-
+  
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
     source master_neutron_dev.rc
@@ -123,9 +123,10 @@ function run_aio_script() {
   fi
 
   # Add bolt on images
+  export RUN_LIST+="role[heat-all],role[ceilometer-all]"
   export FEDORA_IMAGE=True
   export UBUNTU_IMAGE=True
-
+  
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory
