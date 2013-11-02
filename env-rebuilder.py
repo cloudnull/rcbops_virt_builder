@@ -113,6 +113,20 @@ if __name__ == '__main__':
     networks['management'] = management_network
     networks['nova'] = nova_network
     networks['public'] = public_network
+ 
+    # Make sure Heat workers are set back to basics
+    overrides['heat'] = {"services": {
+        "cloudwatch_api": {
+          "workers": 2,
+        },
+        "cfn_api": {
+          "workers": 2,
+        },
+        "base_api": {
+          "workers": 2,
+        }
+      }
+    }
 
     # Set temp file
     tempdir = tempfile.gettempdir()
