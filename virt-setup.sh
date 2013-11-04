@@ -59,14 +59,16 @@ function setup_dymanicswap() {
   if [ ! "$(swapon -s | grep -v Filename)" ];then
     cat > /opt/swap.sh <<EOF
 #!/usr/bin/env bash
-SWAPFILE="/tmp/SwapFile"
-if [ -f "\${SWAPFILE}" ];then
-  swapoff -a
-  rm \${SWAPFILE}
+if [ ! "\$(swapon -s | grep -v Filename)" ];then
+  SWAPFILE="/tmp/SwapFile"
+  if [ -f "\${SWAPFILE}" ];then
+    swapoff -a
+    rm \${SWAPFILE}
+  fi
+  dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
+  mkswap \${SWAPFILE}
+  swapon \${SWAPFILE}
 fi
-dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
-mkswap \${SWAPFILE}
-swapon \${SWAPFILE}
 EOF
 
     chmod +x /opt/swap.sh
