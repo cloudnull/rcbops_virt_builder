@@ -49,6 +49,11 @@ PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 # ==============================================================================
 set -e 
 
+# Graceful Shutdown of ChefServer
+function chef_kill() {
+  chef-server-ctl graceful-kill
+}
+
 # Reset nova endpoints
 # ==============================================================================
 function nova_endpoint_reset() {
@@ -135,10 +140,10 @@ function reset_rabbitmq() {
 }
 
 function reset_rabbitmq_local_only() {
-  echo "Resetting RabbitMQ to localhost"
+  echo "Resetting RabbitMQ to OMNI IP"
   # Replace IP address for Rabbit
   service rabbitmq-server stop
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=127.0.0.1/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=0.0.0.0/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
   mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
 }
 
@@ -217,8 +222,11 @@ function start_vm() {
 # ==============================================================================
 function stop_swap() {
   SWAPFILE="/tmp/SwapFile"
+  echo "Stopping Swap"
+  swapoff -a
+  sleep 2
+
   if [ -f "${SWAPFILE}" ];then
-    swapoff -a
     echo "Removing Swap File."
     rm ${SWAPFILE}
   fi
@@ -316,6 +324,7 @@ case "$1" in
     clear_cache
     reset_rabbitmq_local_only
     nova_kill
+    chef_kill
     stop_swap
     zero_fill
     hard_stop
