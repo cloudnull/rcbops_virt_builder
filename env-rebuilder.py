@@ -73,14 +73,10 @@ if __name__ == '__main__':
     data = json.loads(ohai[0])
 
     # Set Management Network Interfaces
-    management_network = _get_network(
-        json_data=data, interface="eth0", override=override
-    )
+    management_network = '127.0.0.0/24'
 
     # Set Nova Network Interfaces
-    nova_network = _get_network(
-        json_data=data, interface="eth0", override=override
-    )
+    nova_network = '127.0.0.0/24'
 
     # Set Public Network Interfaces
     public_network = _get_network(

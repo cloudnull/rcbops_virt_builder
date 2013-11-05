@@ -183,7 +183,7 @@ function virt_tools_setup() {
   if [ "${SYSTEM}" == "RHEL" ];then
     chkconfig rebuild-env on
   elif [ "${SYSTEM}" == "DEB" ];then
-    update-rc.d rebuild-env defaults 20
+    update-rc.d rebuild-env defaults 25
   fi
 }
 

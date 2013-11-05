@@ -49,24 +49,14 @@ PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 # ==============================================================================
 set -e 
 
+
 # Graceful Shutdown of ChefServer
 function chef_kill() {
   chef-server-ctl graceful-kill
 }
 
-# Reset nova endpoints
-# ==============================================================================
-function nova_endpoint_reset() {
-  echo "Resetting Nova Endpoints"
-  # Load the Openstack Credentials
-  MYSQLCRD="/root/.my.cnf"
-  USERNAME="$(awk -F'=' '/user/ {print $2}' ${MYSQLCRD})"
-  PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
-  NUKECMD="delete from endpoint where region=\"RegionOne\";"
-  mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
-}
 
-# Kill all the nova things
+# Kill all the Openstack things
 # ==============================================================================
 function os_kill() {
   set +e
@@ -85,6 +75,16 @@ function os_kill() {
   done
   set -e
 }
+
+
+# Kill RabbitMQ
+# ==============================================================================
+function rabbitmq_kill() {
+  # Replace IP address for Rabbit
+  echo "Stopping RabbitMQ"
+  service rabbitmq-server stop
+}
+
 
 # Rebuild Knife
 # ==============================================================================
@@ -108,6 +108,20 @@ cache_options( :path => '/root/.chef/checksums' )
 cookbook_path            [ '/opt/allinoneinone/chef-cookbooks/cookbooks' ]
 EOF
 }
+
+
+# Reset nova endpoints
+# ==============================================================================
+function reset_nova_endpoint() {
+  echo "Resetting Nova Endpoints"
+  # Load the Openstack Credentials
+  MYSQLCRD="/root/.my.cnf"
+  USERNAME="$(awk -F'=' '/user/ {print $2}' ${MYSQLCRD})"
+  PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
+  NUKECMD="delete from endpoint where region=\"RegionOne\";"
+  mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
+}
+
 
 # Reconfigure Chef Server and Rabbit
 # ==============================================================================
@@ -134,19 +148,9 @@ EOF
 function reset_rabbitmq() {
   echo "Resetting RabbitMQ"
   # Replace IP address for Rabbit
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=${SYS_IP}/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=\"\"/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
   mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
   service rabbitmq-server restart
-}
-
-function reset_rabbitmq_local_only_and_kill() {
-  # Replace IP address for Rabbit
-  echo "Stopping RabbitMQ"
-  service rabbitmq-server stop
-
-  echo "Resetting RabbitMQ to localhost"
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=127.0.0.1/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
-  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
 }
 
 
@@ -193,6 +197,8 @@ function package_prep() {
 }
 
 
+# Run Chef-Client
+# ==============================================================================
 function run_chef_client() {
   # Run Chef-client to rebuild all the things
   set -v
@@ -200,38 +206,25 @@ function run_chef_client() {
   set +v
 }
 
+
 # Clear all of the cache things we can find
 # ==============================================================================
 function clear_cache() {
   apt-get clean
 }
 
-# Reconfigure All the things or Nothing
+
+# Start Everything
 # ==============================================================================
 function start_vm() {
   start_swap
-  nova_endpoint_reset
+  reset_nova_endpoint
   reset_rabbitmq
   reset_knife_rb
   reset_chef_server
   reset_chef_env
   run_chef_client
   reset_motd
-}
-
-
-# Disable Swap
-# ==============================================================================
-function stop_swap() {
-  SWAPFILE="/tmp/SwapFile"
-  echo "Stopping Swap"
-  swapoff -a
-  sleep 2
-
-  if [ -f "${SWAPFILE}" ];then
-    echo "Removing Swap File."
-    rm ${SWAPFILE}
-  fi
 }
 
 
@@ -248,12 +241,8 @@ function start_swap() {
 }
 
 
-# Stop the VM services
+# Fill all remaining Disk with Zero's
 # ==============================================================================
-function stop_vm() {
-  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
-}
-
 function zero_fill() {
   echo "Performing A Zero Fill"
   set +e
@@ -270,6 +259,32 @@ function zero_fill() {
   sleep 1
 }
 
+
+# Stop the VM services
+# ==============================================================================
+function stop_vm() {
+  reset_rabbitmq
+  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
+}
+
+
+# Stop Swap
+# ==============================================================================
+function stop_swap() {
+  SWAPFILE="/tmp/SwapFile"
+  echo "Stopping Swap"
+  swapoff -a
+  sleep 2
+
+  if [ -f "${SWAPFILE}" ];then
+    echo "Removing Swap File."
+    rm ${SWAPFILE}
+  fi
+}
+
+
+# System Stop
+# ==============================================================================
 function hard_stop() {
   echo "Shutting Down The System"
   echo 1 > /proc/sys/kernel/sysrq 
@@ -289,6 +304,7 @@ function rebuild_check() {
     echo "Lock File not found..."
   fi
 }
+
 
 case "$1" in
   start)
@@ -317,15 +333,16 @@ case "$1" in
   ;;
   nuke-endpoints)
     set +e
-    nova_endpoint_reset
+    reset_nova_endpoint
   ;;
   package-instance)
-    nova_endpoint_reset
+    reset_nova_endpoint
     package_prep
     run_chef_client
     clear_cache
     os_kill
-    reset_rabbitmq_local_only_and_kill
+    reset_rabbitmq
+    rabbitmq_kill
     chef_kill
     stop_swap
     zero_fill
