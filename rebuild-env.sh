@@ -68,7 +68,7 @@ function nova_endpoint_reset() {
 
 # Kill all the nova things
 # ==============================================================================
-function nova_kill() {
+function os_kill() {
   set +e
   # General Services
   SERVICES="cinder glance nova keystone ceilometer heat horizon"
@@ -139,11 +139,13 @@ function reset_rabbitmq() {
   service rabbitmq-server restart
 }
 
-function reset_rabbitmq_local_only() {
-  echo "Resetting RabbitMQ to OMNI IP"
+function reset_rabbitmq_local_only_and_kill() {
   # Replace IP address for Rabbit
+  echo "Stopping RabbitMQ"
   service rabbitmq-server stop
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=0.0.0.0/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+
+  echo "Resetting RabbitMQ to localhost"
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=127.0.0.1/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
   mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
 }
 
@@ -307,7 +309,7 @@ case "$1" in
     start_vm
   ;;
   os-kill)
-    nova_kill
+    os_kill
   ;;
   force-rebuild)
     set +e
@@ -322,8 +324,8 @@ case "$1" in
     package_prep
     run_chef_client
     clear_cache
-    reset_rabbitmq_local_only
-    nova_kill
+    os_kill
+    reset_rabbitmq_local_only_and_kill
     chef_kill
     stop_swap
     zero_fill
