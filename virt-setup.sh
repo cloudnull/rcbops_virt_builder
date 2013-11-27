@@ -53,29 +53,6 @@ EOF
   fi
 }
 
-# Make sure we have a swap file
-# ==========================================================================
-function setup_dymanicswap() {
-  if [ ! "$(swapon -s | grep -v Filename)" ];then
-    cat > /opt/swap.sh <<EOF
-#!/usr/bin/env bash
-if [ ! "\$(swapon -s | grep -v Filename)" ];then
-  SWAPFILE="/tmp/SwapFile"
-  if [ -f "\${SWAPFILE}" ];then
-    swapoff -a
-    rm \${SWAPFILE}
-  fi
-  dd if=/dev/zero of=\${SWAPFILE} bs=1M count=2048
-  mkswap \${SWAPFILE}
-  swapon \${SWAPFILE}
-fi
-EOF
-
-    chmod +x /opt/swap.sh
-    /opt/swap.sh
-  fi
-}
-
 # Setup the box for AIO use
 # ==========================================================================
 function setup_grub() {
@@ -119,24 +96,15 @@ function run_aio_script() {
   
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
-    source master_neutron_dev.rc
+    source ExampleConfigs/master_neutron_dev.rc
   else
-    source master_dev.rc
+    source ExampleConfigs/master_dev.rc
   fi
-
-  # Add bolt on images
-  export RUN_LIST+=",role[heat-all],role[ceilometer-all]"
-  export FEDORA_IMAGE=True
-  export UBUNTU_IMAGE=True
   
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory
   popd
-  
-  if [ -f "/opt/swap.sh" ];then
-    echo "/opt/swap.sh" | tee -a /etc/rc.local
-  fi
 }
 
 # Get and setup the virt tools
@@ -169,7 +137,8 @@ function virt_tools_setup() {
       rm /opt/vm-rebuilder/base.json
     fi
     # Move the the aio JSON to the base
-    cp /opt/allinoneinone/chef-cookbooks/allinoneinone.json /opt/vm-rebuilder/base.json
+    BASE_LOCATION="/opt/allinoneinone/chef-cookbooks"
+    cp ${BASE_LOCATION}/allinoneinone.json /opt/vm-rebuilder/base.json
   fi
   
   # Leave the Directory
@@ -205,9 +174,6 @@ GITHUB_URL=${GITHUB_URL:-"https://github.com/cloudnull"}
 
 # Set if you want to use Neutron; True||False. Default is False.
 USE_NEUTRON=${USE_NEUTRON:-"False"}
-
-# Set The Dynamic Swap 
-setup_dymanicswap
 
 # Get and Run the AIO Script
 run_aio_script
