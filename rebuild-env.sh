@@ -20,7 +20,7 @@
 # Description: Build and Rebuild a virtual environment
 
 ### BEGIN INIT INFO
-# Provides: 
+# Provides:
 # Required-Start: $remote_fs $network $syslog
 # Required-Stop: $remote_fs $syslog
 # Default-Start: 2 3 4 5
@@ -32,7 +32,7 @@
 # Set HOME
 export HOME="/root"
 
-# Set the Path 
+# Set the Path
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
 
 # Set the location of the script
@@ -45,9 +45,9 @@ SYS_IP=$(ohai ipaddress | awk '/^ / {gsub(/ *\"/, ""); print; exit}')
 PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 
 # ==============================================================================
-#           DO NOT EDIT THIS AREA UNLESS YOU KNOW WHAT YOU ARE DOING    
+#           DO NOT EDIT THIS AREA UNLESS YOU KNOW WHAT YOU ARE DOING
 # ==============================================================================
-set -e 
+set -e
 
 
 # Graceful Shutdown of ChefServer
@@ -61,17 +61,11 @@ function chef_kill() {
 function os_kill() {
   set +e
   # General Services
-  SERVICES="cinder glance nova keystone ceilometer heat horizon"
+  SERVICES="cinder glance nova keystone ceilometer heat apache httpd"
 
   # Stop Service
   for service in ${SERVICES}; do
-    for pid in $(ps auxf | grep -i ${service} | grep -v grep | awk '{print $2}'); do
-      if [ "${pid}" ];then
-        if [ "$(ps auxf | grep ${pid} | grep -v grep | awk '{print $2}')" ];then
-          kill ${pid}
-        fi
-      fi
-    done
+     find /etc/init.d/ -name "*${service}*" -exec {} stop \;
   done
   set -e
 }
@@ -127,14 +121,27 @@ function reset_nova_endpoint() {
 # ==============================================================================
 function reset_chef_server() {
   echo "Resetting Chef Server"
-  # Reset client.rb
+
   cat > /etc/chef/client.rb <<EOF
 log_level        :auto
 log_location     STDOUT
 chef_server_url  "https://${SYS_IP}:4000"
 validation_client_name "chef-validator"
 EOF
-  
+
+  cat > /etc/chef-server/chef-server.rb <<EOF
+erchef['s3_url_ttl'] = 3600
+nginx["ssl_port"] = 4000
+nginx["non_ssl_port"] = 4080
+nginx["enable_non_ssl"] = true
+rabbitmq["node_ip_address"] = "${SYS_IP}"
+rabbitmq["vip"] = "${SYS_IP}"
+rabbitmq["enable"] = false
+rabbitmq["password"] = "${RMQ_PW}"
+chef_server_webui['web_ui_admin_default_password'] = "${CHEF_PW}"
+bookshelf['url'] = "https://#{node['ipaddress']}:4000"
+EOF
+
   # Reconfigure Chef-server
   chef-server-ctl reconfigure
   chef-server-ctl restart
@@ -235,7 +242,7 @@ function start_swap() {
   if [ -f "/opt/swap.sh" ];then
     /opt/swap.sh
   fi
-  
+
   # Enable all the swaps
   swapon -a
 }
@@ -286,16 +293,17 @@ function stop_swap() {
 # System Stop
 # ==============================================================================
 function hard_stop() {
-  echo "Shutting Down The System"
-  echo 1 > /proc/sys/kernel/sysrq 
-  echo o > /proc/sysrq-trigger
+  touch /opt/first.boot
+  shutdown -P now
 }
 
 
 # Check before Rebuilding
 # ==============================================================================
 function rebuild_check() {
-  if [ -f "/opt/last.ip.lock" ];then
+  if [ -f "/opt/first.boot" ];then
+    echo "Warming up for first boot process..."
+  elif [ -f "/opt/last.ip.lock" ];then
     if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
       echo "No System Changes Detected, Continuing with Regular Boot..."
       exit 0
@@ -309,7 +317,7 @@ function rebuild_check() {
 case "$1" in
   start)
     clear
-    echo $PROGRAM is Initializing... 
+    echo $PROGRAM is Initializing...
     rebuild_check
     start_vm
   ;;
@@ -336,6 +344,7 @@ case "$1" in
     reset_nova_endpoint
   ;;
   package-instance)
+    SYS_IP="127.0.0.1"
     reset_nova_endpoint
     package_prep
     run_chef_client
@@ -352,4 +361,4 @@ case "$1" in
     echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|nuke-endpoints|package-instance}" >&2
     exit 1
   ;;
-esac 
+esac

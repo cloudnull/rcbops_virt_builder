@@ -92,10 +92,10 @@ if __name__ == '__main__':
 
     # Set Rabbit Bind Address and Cookie
     rabbit = overrides.get('rabbitmq')
-    rabbit['address'] = ip_address
+    rabbit['address'] = ''
     if os.path.exists('/var/lib/rabbitmq/.erlang.cookie'):
         with open('/var/lib/rabbitmq/.erlang.cookie', 'r') as erlang_cookie:
-            rabbit_cookie = erlang_cookie.read()        
+            rabbit_cookie = erlang_cookie.read()
     else:
         rabbit_cookie = 'AnyStringWillDoJustFine'
     rabbit['erlang_cookie'] = rabbit_cookie
@@ -109,19 +109,20 @@ if __name__ == '__main__':
     networks['management'] = management_network
     networks['nova'] = nova_network
     networks['public'] = public_network
- 
+
     # Make sure Heat workers are set back to basics
-    overrides['heat'] = {"services": {
-        "cloudwatch_api": {
-          "workers": 2,
-        },
-        "cfn_api": {
-          "workers": 2,
-        },
-        "base_api": {
-          "workers": 2,
+    overrides['heat'] = {
+        "services": {
+            "cloudwatch_api": {
+              "workers": 2,
+            },
+            "cfn_api": {
+              "workers": 2,
+            },
+            "base_api": {
+              "workers": 2,
+            }
         }
-      }
     }
 
     # Set temp file
@@ -137,5 +138,5 @@ if __name__ == '__main__':
     # Write out the new file
     with open(write_file, 'wb') as knife_env:
         knife_env.write(json.dumps(chef_env, indent=2))
-    
+
     print('%s' % write_file)
