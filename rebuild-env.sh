@@ -53,6 +53,9 @@ set -e
 # Graceful Shutdown of ChefServer
 function chef_kill() {
   chef-server-ctl graceful-kill
+  rm /etc/chef-server/chef-server-running.json
+  rm /etc/chef-server/chef-server-secrets.json
+  rm /var/chef/cache/remote_file/*.json
 }
 
 
@@ -293,7 +296,6 @@ function stop_swap() {
 # System Stop
 # ==============================================================================
 function hard_stop() {
-  touch /opt/first.boot
   shutdown -P now
 }
 
@@ -303,6 +305,7 @@ function hard_stop() {
 function rebuild_check() {
   if [ -f "/opt/first.boot" ];then
     echo "Warming up for first boot process..."
+    rm /opt/first.boot
   elif [ -f "/opt/last.ip.lock" ];then
     if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
       echo "No System Changes Detected, Continuing with Regular Boot..."
@@ -350,11 +353,13 @@ case "$1" in
     run_chef_client
     clear_cache
     os_kill
+    reset_knife_rb
     reset_rabbitmq
-    rabbitmq_kill
     chef_kill
+    rabbitmq_kill
     stop_swap
     zero_fill
+    touch /opt/first.boot
     hard_stop
   ;;
   *)
