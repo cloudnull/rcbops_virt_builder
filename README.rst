@@ -26,7 +26,7 @@ MINIMUM SYSTEM REQUIREMENTS
 * Dual Core Processor
 * 2GB or RAM
 * 10GB of Storage
-
+* Three Network Interfaces (eth0 and eth1 are DHCP, eth2 is special)
 
 
 OVERVIEW
