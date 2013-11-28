@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Author Kevin.Carter@Rackspace.com 
+# Author Kevin.Carter@Rackspace.com
 
 # Set Exit on error
 set -e
@@ -42,7 +42,7 @@ Description=Text mode theme based on ubuntu-logo theme
 ModuleName=ubuntu-text
 
 [ubuntu-text]
-title=Rackspace (TM) Private Cloud
+title=Rackspace (TM) Private Cloud, [ESC] to see progress
 black=0x000000
 white=0xffffff
 brown=0xff4012
@@ -72,6 +72,24 @@ EOF
   fi
 }
 
+
+# Special Device setup
+function special_device() {
+    sed '/^#### SPECIAL/,/^#### SPECIAL/d' /etc/network/interfaces > /tmp/interfaces
+    mv /tmp/interfaces /etc/network/interfaces
+
+    cat >> /etc/network/interfaces <<EOF
+#### SPECIAL
+# This is a special interface / device, DO NOT REMOVE or MODIFY
+auto eth2
+iface eth2 inet static
+    address 172.151.151.151
+    netmask 255.255.255.0
+#### SPECIAL
+EOF
+}
+
+
 # Blacklist SMBus Controller for VM
 # ==========================================================================
 function blacklist_modules() {
@@ -84,23 +102,25 @@ function blacklist_modules() {
 # ==========================================================================
 function run_aio_script() {
   # Make the scripts directory
-  if [ ! -d "/opt/aio-script" ];then
-    mkdir -p /opt/aio-script
+  if [ -d "/opt/aio-script" ];then
+    rm -rf /opt/aio-script
   fi
+
+  mkdir -p /opt/aio-script
 
   # Get and Run the Install Script
   git clone ${GITHUB_URL}/rcbops_allinone_inone /opt/aio-script
 
   # Enter the Directory
   pushd /opt/aio-script
-  
+
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
     source ExampleConfigs/master_neutron_dev.rc
   else
     source ExampleConfigs/master_dev.rc
   fi
-  
+
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory
@@ -140,14 +160,14 @@ function virt_tools_setup() {
     BASE_LOCATION="/opt/allinoneinone/chef-cookbooks"
     cp ${BASE_LOCATION}/allinoneinone.json /opt/vm-rebuilder/base.json
   fi
-  
+
   # Leave the Directory
   popd
 
 
   # Make the symlink
   ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
-    
+
   # Setup the init script
   if [ "${SYSTEM}" == "RHEL" ];then
     chkconfig rebuild-env on
@@ -174,6 +194,9 @@ GITHUB_URL=${GITHUB_URL:-"https://github.com/cloudnull"}
 
 # Set if you want to use Neutron; True||False. Default is False.
 USE_NEUTRON=${USE_NEUTRON:-"False"}
+
+# Setup our special device
+special_device
 
 # Get and Run the AIO Script
 run_aio_script

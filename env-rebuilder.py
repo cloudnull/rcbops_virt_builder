@@ -35,20 +35,20 @@ def _get_network(json_data, interface, override=False):
             for net in routes:
                 if 'scope' in net:
                     if override is True:
-                        return '127.0.0.0/24'
+                        return '172.151.151.0/24'
                     else:
-                        cidr = net.get('destination', '127.0.0.0/24')
+                        cidr = net.get('destination', '172.151.151.0/24')
                         if cidr is None:
-                            return '127.0.0.0/24'
+                            return '172.151.151.0/24'
                         else:
                             return cidr
                     break
             else:
-                return '127.0.0.0/24'
+                return '172.151.151.0/24'
         else:
-            return '127.0.0.0/24'
+            return '172.151.151.0/24'
     else:
-        return '127.0.0.0/24'
+        return '172.151.151.0/24'
 
 
 if __name__ == '__main__':
@@ -72,14 +72,17 @@ if __name__ == '__main__':
     # Load Ohai data as a Dict
     data = json.loads(ohai[0])
 
-    # Set Management Network Interfaces
-    management_network = '127.0.0.0/24'
-
     # Set Nova Network Interfaces
-    nova_network = '127.0.0.0/24'
+    nova_network = _get_network(
+        json_data=data, interface="eth0", override=override
+    )
 
     # Set Public Network Interfaces
     public_network = _get_network(
+        json_data=data, interface="eth0", override=override
+    )
+
+    management_network = _get_network(
         json_data=data, interface="eth0", override=override
     )
 

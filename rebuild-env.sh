@@ -50,15 +50,6 @@ PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 set -e
 
 
-# Graceful Shutdown of ChefServer
-function chef_kill() {
-  chef-server-ctl graceful-kill
-  rm /etc/chef-server/chef-server-running.json
-  rm /etc/chef-server/chef-server-secrets.json
-  rm /var/chef/cache/remote_file/*.json
-}
-
-
 # Kill all the Openstack things
 # ==============================================================================
 function os_kill() {
@@ -83,8 +74,50 @@ function rabbitmq_kill() {
 }
 
 
-# Rebuild Knife
+# Reset nova endpoints
 # ==============================================================================
+function reset_nova_endpoint() {
+  echo "Resetting Nova Endpoints"
+  # Load the Openstack Credentials
+  MYSQLCRD="/root/.my.cnf"
+  USERNAME="$(awk -F'=' '/user/ {print $2}' ${MYSQLCRD})"
+  PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
+  NUKECMD="delete from endpoint where region=\"RegionOne\";"
+  mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
+}
+
+
+# Reconfigure RabbitMQ
+# ==============================================================================
+function reset_rabbitmq() {
+  echo "Resetting RabbitMQ"
+  # Replace IP address for Rabbit
+  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=\"\"/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
+  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
+
+  service rabbitmq-server stop
+  sleep 2
+  service rabbitmq-server start
+}
+
+
+# Set MOTD with new information
+# ==============================================================================
+function reset_motd() {
+  echo "Resetting MOTD"
+  # Change the Horizon URL in the MOTD
+  sed "s/Horizon URL is.*/Horizon URL is\t\t       : https:\/\/${SYS_IP}:443/" /etc/motd > /etc/motd2
+  mv /etc/motd2 /etc/motd
+
+  # Change the Chef URL in the MOTD
+  sed "s/Chef Server URL is.*/Chef Server URL is\t       : https:\/\/${SYS_IP}:4000/" /etc/motd > /etc/motd2
+  mv /etc/motd2 /etc/motd
+}
+
+
+# CHEF Actions
+# ==============================================================================
+# Rebuild Knife
 function reset_knife_rb() {
   echo "Resetting Knife"
   # Create Chef Dir if not found
@@ -107,21 +140,16 @@ EOF
 }
 
 
-# Reset nova endpoints
-# ==============================================================================
-function reset_nova_endpoint() {
-  echo "Resetting Nova Endpoints"
-  # Load the Openstack Credentials
-  MYSQLCRD="/root/.my.cnf"
-  USERNAME="$(awk -F'=' '/user/ {print $2}' ${MYSQLCRD})"
-  PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
-  NUKECMD="delete from endpoint where region=\"RegionOne\";"
-  mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
+# Graceful Shutdown of ChefServer
+function chef_kill() {
+  chef-server-ctl graceful-kill
+  rm /etc/chef-server/chef-server-running.json
+  rm /etc/chef-server/chef-server-secrets.json
+  rm /var/chef/cache/remote_file/*.json
 }
 
 
-# Reconfigure Chef Server and Rabbit
-# ==============================================================================
+# Reconfigure Chef Server and client.rb
 function reset_chef_server() {
   echo "Resetting Chef Server"
 
@@ -137,11 +165,9 @@ erchef['s3_url_ttl'] = 3600
 nginx["ssl_port"] = 4000
 nginx["non_ssl_port"] = 4080
 nginx["enable_non_ssl"] = true
-rabbitmq["node_ip_address"] = "${SYS_IP}"
-rabbitmq["vip"] = "${SYS_IP}"
 rabbitmq["enable"] = false
-rabbitmq["password"] = "${RMQ_PW}"
-chef_server_webui['web_ui_admin_default_password'] = "${CHEF_PW}"
+rabbitmq["password"] = "secrete"
+chef_server_webui['web_ui_admin_default_password'] = "secrete"
 bookshelf['url'] = "https://#{node['ipaddress']}:4000"
 EOF
 
@@ -153,33 +179,7 @@ EOF
 }
 
 
-# Reconfigure RabbitMQ
-# ==============================================================================
-function reset_rabbitmq() {
-  echo "Resetting RabbitMQ"
-  # Replace IP address for Rabbit
-  sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=\"\"/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
-  mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
-  service rabbitmq-server restart
-}
-
-
-# Set MOTD with new information
-# ==============================================================================
-function reset_motd() {
-  echo "Resetting MOTD"
-  # Change the Horizon URL in the MOTD
-  sed "s/Horizon URL is.*/Horizon URL is\t\t       : https:\/\/${SYS_IP}:443/" /etc/motd > /etc/motd2
-  mv /etc/motd2 /etc/motd
-
-  # Change the Chef URL in the MOTD
-  sed "s/Chef Server URL is.*/Chef Server URL is\t       : https:\/\/${SYS_IP}:4000/" /etc/motd > /etc/motd2
-  mv /etc/motd2 /etc/motd
-}
-
-
 # Rebuild Chef Environment
-# ==============================================================================
 function reset_chef_env() {
   echo "Resetting Chef Environment"
   # Munge the Base JSON Environment
@@ -191,29 +191,40 @@ function reset_chef_env() {
 }
 
 
+# Run Chef-Client
+function run_chef_client() {
+  # Run Chef-client to rebuild all the things
+  set -v
+  chef-client
+  set +v
+}
+
+
+function chef_rebuild_group() {
+  reset_knife_rb
+  reset_chef_server
+}
+
+
 # Package For Distribution
 # ==============================================================================
 function package_prep() {
   echo "Performing package prep"
   ORIG_JSON="${SCRIPT_DIR}/base.json"
   NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP} "override")
+
   # Overwrite the OLD Environment with BASE environment
   if [ -f "/opt/last.ip.lock" ];then
     rm /opt/last.ip.lock
   fi
+
+  # Overwrite the OLD Environment with a  NEW environment
   knife environment from file ${NEW_ENV}
+
+  # Nuke our history
   echo '' | tee /root/.bash_history
   history -c
-}
-
-
-# Run Chef-Client
-# ==============================================================================
-function run_chef_client() {
-  # Run Chef-client to rebuild all the things
-  set -v
-  chef-client
-  set +v
+  sync
 }
 
 
@@ -230,8 +241,7 @@ function start_vm() {
   start_swap
   reset_nova_endpoint
   reset_rabbitmq
-  reset_knife_rb
-  reset_chef_server
+  chef_rebuild_group
   reset_chef_env
   run_chef_client
   reset_motd
@@ -347,16 +357,19 @@ case "$1" in
     reset_nova_endpoint
   ;;
   package-instance)
-    SYS_IP="127.0.0.1"
     reset_nova_endpoint
+    SYS_IP="127.0.0.1"
     package_prep
+
     run_chef_client
     clear_cache
     os_kill
-    reset_knife_rb
+
+    chef_rebuild_group
     reset_rabbitmq
     chef_kill
     rabbitmq_kill
+
     stop_swap
     zero_fill
     touch /opt/first.boot
