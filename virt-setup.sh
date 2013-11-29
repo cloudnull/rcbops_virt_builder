@@ -42,7 +42,7 @@ Description=Text mode theme based on ubuntu-logo theme
 ModuleName=ubuntu-text
 
 [ubuntu-text]
-title=Rackspace (TM) Private Cloud, [ESC] to see progress
+title=Rackspace Private Cloud, [ESC] for progress
 black=0x000000
 white=0xffffff
 brown=0xff4012
