@@ -39,7 +39,7 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/g
 SCRIPT_DIR='/opt/vm-rebuilder'
 
 # Set the systems IP ADDRESS
-SYS_IP=$(ohai ipaddress | awk '/^ / {gsub(/ *\"/, ""); print; exit}')
+SYS_IP=$(/opt/vm-rebuilder/getip.py)
 
 # What is the Name of this Script, and what are we starting
 PROGRAM="VM_REBUILDER At: ${SYS_IP}"
@@ -175,7 +175,7 @@ EOF
   chef-server-ctl reconfigure
   chef-server-ctl restart
   echo "Resting Post Chef Restart"
-  sleep 2
+  sleep 5
 }
 
 
