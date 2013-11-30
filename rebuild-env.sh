@@ -318,11 +318,48 @@ EOF
 }
 
 
+# Truncate the root bash history
+function root_history() {
+  if [ -f "/root/.bash_history" ];then
+    echo '' | tee /root/.bash_history
+  fi
+  sync
+}
+
+
 # Stop the VM services
 function stop_vm() {
   reset_rabbitmq
   rabbitmq_kill
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
+
+  # Flush all of the routes on the system
+  ip route flush all
+  sync
+}
+
+
+# Perform all packaging operations
+function package_vm() {
+  reset_nova_endpoint
+  SYS_IP="127.0.0.1"
+  package_prep
+
+  run_chef_client
+  clear_cache
+  os_kill
+
+  chef_rebuild_group
+  reset_rabbitmq
+  chef_kill
+  rabbitmq_kill
+
+  stop_swap
+  zero_fill
+  touch /opt/first.boot
+  udev_truncate
+  root_history
+  shutdown_server
 }
 
 
@@ -341,7 +378,7 @@ function stop_swap() {
 
 
 # System Stop
-function hard_stop() {
+function shutdown_server() {
   shutdown -P now
 }
 
@@ -362,6 +399,11 @@ function rebuild_check() {
 }
 
 
+# ==============================================================================
+#           DO NOT EDIT THIS AREA UNLESS YOU KNOW WHAT YOU ARE DOING
+# ==============================================================================
+
+# Service functions
 case "$1" in
   start)
     clear
@@ -391,24 +433,7 @@ case "$1" in
     reset_nova_endpoint
   ;;
   package-instance)
-    reset_nova_endpoint
-    SYS_IP="127.0.0.1"
-    package_prep
-
-    run_chef_client
-    clear_cache
-    os_kill
-
-    chef_rebuild_group
-    reset_rabbitmq
-    chef_kill
-    rabbitmq_kill
-
-    stop_swap
-    zero_fill
-    touch /opt/first.boot
-    udev_truncate
-    hard_stop
+    package_vm
   ;;
   *)
     echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|nuke-endpoints|package-instance}" >&2
