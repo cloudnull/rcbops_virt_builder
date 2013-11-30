@@ -49,6 +49,14 @@ PROGRAM="VM_REBUILDER At: ${SYS_IP}"
 # ==============================================================================
 set -e
 
+if [ ! "${SYS_IP}" ];then
+  cat > /etc/motd<<EOF
+THIS INSTALLATION HAS FAILED!
+The system does not seem to have "eth0"
+Please check your VM's Settings and try again.
+EOF
+  error_exit "No Network Device Found."
+fi
 
 # Kill all the Openstack things
 # ==============================================================================
@@ -360,17 +368,17 @@ function rebuild_check() {
 case "$1" in
   start)
     clear
-    echo $PROGRAM is Initializing...
+    echo "${PROGRAM} is Initializing..."
     rebuild_check
     start_vm
   ;;
   stop)
-    echo $PROGRAM is Shutting Down...
+    echo "${PROGRAM} is Shutting Down..."
     stop_vm
     stop_swap
   ;;
   restart)
-    echo $PROGRAM is Restarting...
+    echo "${PROGRAM} is Restarting..."
     stop_vm
     rebuild_check
     start_vm
