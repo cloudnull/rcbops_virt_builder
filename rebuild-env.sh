@@ -226,7 +226,10 @@ function run_chef_client() {
   if [ ${RETRY} -eq ${MAX_RETRIES} ];then
     cat > /etc/motd<<EOF
 THIS INSTALLATION HAS FAILED!
-Please Reinstalled/Import the OVA or contact Rackspace Support for assistance.
+Please Reinstalled/Import the OVA.
+
+You can also run: touch /opt/first.boot
+Then reboot to reattempt another deployment.
 EOF
     error_exit "Hit maximum number of retries (${MAX_RETRIES}), giving up..."
   fi
@@ -320,6 +323,9 @@ function zero_fill() {
 # Stop the VM services
 # ==============================================================================
 function stop_vm() {
+  cat > /etc/udev/rules.d/70-persistent-net.rules<<EOF
+# Net Device Rules
+EOF
   reset_rabbitmq
   rabbitmq_kill
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
