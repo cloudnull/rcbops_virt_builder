@@ -94,12 +94,15 @@ function reset_rabbitmq() {
   # Replace IP address for Rabbit
   sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=\"\"/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
   mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
+  service rabbitmq-server stop
+}
 
+# Stop and then Start RabbitMQ
+function restart_rabbitmq(){
   service rabbitmq-server stop
   sleep 2
   service rabbitmq-server start
 }
-
 
 # Set MOTD with new information
 # ==============================================================================
@@ -191,12 +194,29 @@ function reset_chef_env() {
 }
 
 
-# Run Chef-Client
+# Run Chef-client to rebuild all the things
 function run_chef_client() {
-  # Run Chef-client to rebuild all the things
-  set -v
-  chef-client
   set +v
+  set +e
+
+  MAX_RETRIES=${MAX_RETRIES:-5}
+  RETRY=0
+
+  # Set the initial return value to failure
+  false
+
+  while [ $? -ne 0 -a ${RETRY} -lt ${MAX_RETRIES} ];do
+    # Begin Cooking
+    RETRY=$((${RETRY}+1))
+    chef-client
+  done
+
+  if [ ${RETRY} -eq ${MAX_RETRIES} ];then
+    error_exit "Hit maximum number of retries, giving up..."
+  fi
+
+  set -v
+  set -e
 }
 
 
@@ -241,6 +261,7 @@ function start_vm() {
   start_swap
   reset_nova_endpoint
   reset_rabbitmq
+  restart_rabbitmq
   chef_rebuild_group
   reset_chef_env
   run_chef_client
@@ -367,6 +388,7 @@ case "$1" in
 
     chef_rebuild_group
     reset_rabbitmq
+    restart_rabbitmq
     chef_kill
     rabbitmq_kill
 
