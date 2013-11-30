@@ -59,7 +59,6 @@ EOF
 fi
 
 # Kill all the Openstack things
-# ==============================================================================
 function os_kill() {
   set +e
   # General Services
@@ -74,7 +73,6 @@ function os_kill() {
 
 
 # Reset nova endpoints
-# ==============================================================================
 function reset_nova_endpoint() {
   set +e
   echo "Resetting Nova Endpoints"
@@ -89,7 +87,6 @@ function reset_nova_endpoint() {
 
 
 # Reconfigure RabbitMQ
-# ==============================================================================
 function reset_rabbitmq() {
   set +e
   echo "Resetting RabbitMQ"
@@ -117,7 +114,6 @@ function restart_rabbitmq(){
 }
 
 # Set MOTD with new information
-# ==============================================================================
 function reset_motd() {
   echo "Resetting MOTD"
   # Change the Horizon URL in the MOTD
@@ -131,7 +127,6 @@ function reset_motd() {
 
 
 # CHEF Actions
-# ==============================================================================
 # Rebuild Knife
 function reset_knife_rb() {
   echo "Resetting Knife"
@@ -246,7 +241,6 @@ function chef_rebuild_group() {
 
 
 # Package For Distribution
-# ==============================================================================
 function package_prep() {
   echo "Performing package prep"
   ORIG_JSON="${SCRIPT_DIR}/base.json"
@@ -268,14 +262,12 @@ function package_prep() {
 
 
 # Clear all of the cache things we can find
-# ==============================================================================
 function clear_cache() {
   apt-get clean
 }
 
 
 # Start Everything
-# ==============================================================================
 function start_vm() {
   start_swap
   reset_nova_endpoint
@@ -289,7 +281,6 @@ function start_vm() {
 
 
 # Disable Swap
-# ==============================================================================
 function start_swap() {
   # Enable swap from script
   if [ -f "/opt/swap.sh" ];then
@@ -302,7 +293,6 @@ function start_swap() {
 
 
 # Fill all remaining Disk with Zero's
-# ==============================================================================
 function zero_fill() {
   echo "Performing A Zero Fill"
   set +e
@@ -320,12 +310,16 @@ function zero_fill() {
 }
 
 
-# Stop the VM services
-# ==============================================================================
-function stop_vm() {
-  cat > /etc/udev/rules.d/70-persistent-net.rules<<EOF
+# Truncate the contents of our net rules
+function udev_truncate() {
+    cat > /etc/udev/rules.d/70-persistent-net.rules<<EOF
 # Net Device Rules
 EOF
+}
+
+
+# Stop the VM services
+function stop_vm() {
   reset_rabbitmq
   rabbitmq_kill
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
@@ -333,7 +327,6 @@ EOF
 
 
 # Stop Swap
-# ==============================================================================
 function stop_swap() {
   SWAPFILE="/tmp/SwapFile"
   echo "Stopping Swap"
@@ -348,14 +341,12 @@ function stop_swap() {
 
 
 # System Stop
-# ==============================================================================
 function hard_stop() {
   shutdown -P now
 }
 
 
 # Check before Rebuilding
-# ==============================================================================
 function rebuild_check() {
   if [ -f "/opt/first.boot" ];then
     echo "Warming up for first boot process..."
@@ -382,6 +373,7 @@ case "$1" in
     echo "${PROGRAM} is Shutting Down..."
     stop_vm
     stop_swap
+    udev_truncate
   ;;
   restart)
     echo "${PROGRAM} is Restarting..."
@@ -415,6 +407,7 @@ case "$1" in
     stop_swap
     zero_fill
     touch /opt/first.boot
+    udev_truncate
     hard_stop
   ;;
   *)
