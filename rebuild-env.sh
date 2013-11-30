@@ -65,18 +65,10 @@ function os_kill() {
 }
 
 
-# Kill RabbitMQ
-# ==============================================================================
-function rabbitmq_kill() {
-  # Replace IP address for Rabbit
-  echo "Stopping RabbitMQ"
-  service rabbitmq-server stop
-}
-
-
 # Reset nova endpoints
 # ==============================================================================
 function reset_nova_endpoint() {
+  set +e
   echo "Resetting Nova Endpoints"
   # Load the Openstack Credentials
   MYSQLCRD="/root/.my.cnf"
@@ -84,24 +76,36 @@ function reset_nova_endpoint() {
   PASSWORD="$(awk -F'=' '/password/ {print $2}' ${MYSQLCRD})"
   NUKECMD="delete from endpoint where region=\"RegionOne\";"
   mysql -u "${USERNAME}" -p"${PASSWORD}" -o keystone -e "${NUKECMD}"
+  set -e
 }
 
 
 # Reconfigure RabbitMQ
 # ==============================================================================
 function reset_rabbitmq() {
+  set +e
   echo "Resetting RabbitMQ"
+
   # Replace IP address for Rabbit
   sed "s/NODE_IP_ADDRESS=.*/NODE_IP_ADDRESS=\"\"/" /etc/rabbitmq/rabbitmq-env.conf > /tmp/rabbitmq-env.conf2
   mv /tmp/rabbitmq-env.conf2 /etc/rabbitmq/rabbitmq-env.conf
+  set -e
+}
+
+# Stop Rabbit MQ
+function rabbitmq_kill() {
+  # Replace IP address for Rabbit
+  echo "Stopping RabbitMQ"
   service rabbitmq-server stop
 }
 
 # Stop and then Start RabbitMQ
 function restart_rabbitmq(){
+  set +e
   service rabbitmq-server stop
   sleep 2
   service rabbitmq-server start
+  set -e
 }
 
 # Set MOTD with new information
@@ -212,7 +216,11 @@ function run_chef_client() {
   done
 
   if [ ${RETRY} -eq ${MAX_RETRIES} ];then
-    error_exit "Hit maximum number of retries, giving up..."
+    cat > /etc/motd<<EOF
+THIS INSTALLATION HAS FAILED!
+Please Reinstalled/Import the OVA or contact Rackspace Support for assistance.
+EOF
+    error_exit "Hit maximum number of retries (${MAX_RETRIES}), giving up..."
   fi
 
   set -v
@@ -305,6 +313,7 @@ function zero_fill() {
 # ==============================================================================
 function stop_vm() {
   reset_rabbitmq
+  rabbitmq_kill
   echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
 }
 
@@ -370,11 +379,9 @@ case "$1" in
     os_kill
   ;;
   force-rebuild)
-    set +e
     start_vm
   ;;
   nuke-endpoints)
-    set +e
     reset_nova_endpoint
   ;;
   package-instance)
@@ -388,7 +395,6 @@ case "$1" in
 
     chef_rebuild_group
     reset_rabbitmq
-    restart_rabbitmq
     chef_kill
     rabbitmq_kill
 
