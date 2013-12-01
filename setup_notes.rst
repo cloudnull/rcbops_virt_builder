@@ -1,7 +1,37 @@
+Prebuild Setup
+--------------
+
+Edit the file ``/etc/resolvconf/resolv.conf.d/base``
+
+Create two entries for base DNS::
+
+    nameserver 8.8.8.8
+    nameserver 8.8.4.4
+
+
+Edit the file ``/etc/network/interfaces``
+
+You should have three network interfaces setup on your VM, two are setup now, one is doen by the installation script.
+
+Make your default network interfaces file look like this::
+
+    # The loopback network interface
+    auto lo
+    iface lo inet loopback
+
+    # The primary network interface
+    auto eth1
+    iface eth1 inet dhcp
+
+    auto eth0
+    iface eth0 inet dhcp
+
+
+
 Nova Compute
 ------------
 
-edit file ``/opt/allinoneinone/chef-cookbooks/cookbooks/nova/recipes/compute.rb``
+Edit the file ``/opt/allinoneinone/chef-cookbooks/cookbooks/nova/recipes/compute.rb``
 
 create an entry for LXC support in the VM, Line 30-37::
 
