@@ -20,6 +20,7 @@
 
 import subprocess
 import json
+import sys
 
 
 def getip(device):
@@ -35,7 +36,11 @@ def getip(device):
     data = json.loads(ohai[0])
 
     # Grab eth0 from the data
-    eth = data['network']['interfaces'][device]['addresses']
+    eths = data['network']['interfaces']
+    if device in eths:
+        eth = eths[device]['addresses']
+    else:
+        raise SystemExit('No Device found for %s' % device)
 
     # parse the data and print the value
     for key, value in eth.items():
@@ -49,4 +54,7 @@ def getip(device):
 
 
 if __name__ == '__main__':
-    getip(device='eth0')
+    if len(sys.argv) > 1:
+        getip(device=sys.argv[1])
+    else:
+        getip(device='eth0')

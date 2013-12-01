@@ -39,24 +39,27 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/g
 SCRIPT_DIR='/opt/vm-rebuilder'
 
 # Set the systems IP ADDRESS
-SYS_IP=$(/opt/vm-rebuilder/getip.py)
+SYS_IP=$(/opt/vm-rebuilder/getip.py eth0)
+SYS_IP2=$(/opt/vm-rebuilder/getip.py eth1)
 
 # What is the Name of this Script, and what are we starting
-PROGRAM="VM_REBUILDER At: ${SYS_IP}"
+PROGRAM="VM_REBUILDER At: ${SYS_IP} | ${SYS_IP2}"
 
 # ==============================================================================
 #           DO NOT EDIT THIS AREA UNLESS YOU KNOW WHAT YOU ARE DOING
 # ==============================================================================
 set -e
 
-if [ ! "${SYS_IP}" ];then
-  cat > /etc/motd<<EOF
+function sys_ip_check() {
+  if [ ! "${SYS_IP}" ];then
+    cat > /etc/motd <<EOF
 THIS INSTALLATION HAS FAILED!
 The system does not seem to have "eth0"
 Please check your VM's Settings and try again.
 EOF
-  error_exit "No Network Device Found."
-fi
+    error_exit "No Network Device Found."
+  fi
+}
 
 # Kill all the Openstack things
 function os_kill() {
@@ -117,11 +120,10 @@ function restart_rabbitmq(){
 function reset_motd() {
   echo "Resetting MOTD"
   # Change the Horizon URL in the MOTD
-  sed "s/Horizon URL is.*/Horizon URL is\t\t       : https:\/\/${SYS_IP}:443/" /etc/motd > /etc/motd2
+  sed "s/Interface 0 IP.*/Interface 0 IP\t\t       : ${SYS_IP}/" /etc/motd > /etc/motd2
   mv /etc/motd2 /etc/motd
 
-  # Change the Chef URL in the MOTD
-  sed "s/Chef Server URL is.*/Chef Server URL is\t       : https:\/\/${SYS_IP}:4000/" /etc/motd > /etc/motd2
+  sed "s/Interface 1 IP.*/Interface 1 IP\t\t       : ${SYS_IP2}/" /etc/motd > /etc/motd2
   mv /etc/motd2 /etc/motd
 }
 
@@ -143,7 +145,7 @@ node_name                'admin'
 client_key               '/etc/chef-server/admin.pem'
 validation_client_name   'chef-validator'
 validation_key           '/etc/chef-server/chef-validator.pem'
-chef_server_url          "https://${SYS_IP}:4000"
+chef_server_url          "https://${SYS_IP2}:4000"
 cache_options( :path => '/root/.chef/checksums' )
 cookbook_path            [ '/opt/allinoneinone/chef-cookbooks/cookbooks' ]
 EOF
@@ -166,7 +168,7 @@ function reset_chef_server() {
   cat > /etc/chef/client.rb <<EOF
 log_level        :auto
 log_location     STDOUT
-chef_server_url  "https://${SYS_IP}:4000"
+chef_server_url  "https://${SYS_IP2}:4000"
 validation_client_name "chef-validator"
 EOF
 
@@ -178,7 +180,7 @@ nginx["enable_non_ssl"] = true
 rabbitmq["enable"] = false
 rabbitmq["password"] = "secrete"
 chef_server_webui['web_ui_admin_default_password'] = "secrete"
-bookshelf['url'] = "https://#{node['ipaddress']}:4000"
+bookshelf['url'] = "${SYS_IP2}:4000"
 EOF
 
   # Reconfigure Chef-server
@@ -270,6 +272,7 @@ function clear_cache() {
 # Start Everything
 function start_vm() {
   start_swap
+  sys_ip_check
   reset_nova_endpoint
   reset_rabbitmq
   restart_rabbitmq

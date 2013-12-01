@@ -29,6 +29,7 @@ set -v
 # ==========================================================================
 function setup_banner() {
   ln -f -s /etc/motd /etc/issue
+  cp /etc/motd /etc/motd.old
 }
 
 # Setup the box for AIO use
