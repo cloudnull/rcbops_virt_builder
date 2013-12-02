@@ -27,6 +27,16 @@ Make your default network interfaces file look like this::
     iface eth0 inet dhcp
 
 
+Neutron Install
+~~~~~~~~~~~~~~~
+
+* When running the setup script you first have to export two variables to tell the script to use neutron, and what interface neutron will be assigned to.
+
+export::
+
+    export USE_NEUTRON=True
+    export NEUTRON_INTERFACE="eth0"
+
 
 Nova Compute
 ------------
@@ -97,13 +107,14 @@ Chef Environment
 
 edit the file ``/opt/vm-rebuilder/base.json``
 change line 43 to: ``"virt_type": "lxc"``
+change line 35 to: ``"image_upload": false``
 
 Now edit the chef environment::
 
     knife environment edit allinoneinone
 
 
-In the chef environment editor also change the virt type to "lxc"
+Make the sames changes to the saved chef environment as well
 
 
 Apply Changes to the System
@@ -137,3 +148,16 @@ Create your Image for Ubuntu::
                         --container-format bare \
                         --name "precise" \
                         --property hypervisor_type=lxc
+
+
+Getting the System Ready for Export
+-----------------------------------
+
+The rebuild service has a function that will perform all of the needed tasks to get the virtual appliance ready for export.
+
+Run the service function::
+
+    service rebuild-env package-instance
+
+
+Upon completion, the appliance will be offline and ready for export into OVA format.
