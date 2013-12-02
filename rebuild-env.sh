@@ -120,8 +120,12 @@ function reset_motd() {
   cp /etc/motd.old /etc/motd
   echo "Resetting MOTD"
   # Change the Horizon URL in the MOTD
-  sed "s/System IP Address.*/System IP Address\t       : ${SYS_IP}/" /etc/motd > /etc/motd2
+  sed "s/Horizon URL is.*/Horizon URL is                 : ${SYS_IP}:443/" /etc/motd > /etc/motd2
   mv /etc/motd2 /etc/motd
+
+  sed "s/Chef Server URL is.*/Chef Server URL is             : ${SYS_IP}:4000/" /etc/motd > /etc/motd2
+  mv /etc/motd2 /etc/motd
+
 }
 
 
