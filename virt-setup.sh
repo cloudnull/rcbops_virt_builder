@@ -26,14 +26,12 @@ set -u
 set -v
 
 # Setup Banner
-# ==========================================================================
 function setup_banner() {
   ln -f -s /etc/motd /etc/issue
   cp /etc/motd /etc/motd.old
 }
 
 # Setup the box for AIO use
-# ==========================================================================
 function setup_bootspash() {
   if [ -f "/lib/plymouth/themes/ubuntu-text/ubuntu-text.plymouth" ];then
     cat > /lib/plymouth/themes/ubuntu-text/ubuntu-text.plymouth <<EOF
@@ -55,7 +53,6 @@ EOF
 }
 
 # Setup the box for AIO use
-# ==========================================================================
 function setup_grub() {
   if [ -f "/etc/default/grub" ];then
     cat > /etc/default/grub <<EOF
@@ -76,10 +73,11 @@ EOF
 
 # Special Device setup
 function special_device() {
-    sed '/^#### SPECIAL/,/^#### SPECIAL/d' /etc/network/interfaces > /tmp/interfaces
-    mv /tmp/interfaces /etc/network/interfaces
+  TEMPINT="/tmp/interfaces"
+  sed '/^#### SPECIAL/,/^#### SPECIAL/d' /etc/network/interfaces > ${TEMPINT}
+  mv /tmp/interfaces /etc/network/interfaces
 
-    cat >> /etc/network/interfaces <<EOF
+  cat >> /etc/network/interfaces <<EOF
 #### SPECIAL
 # This is a special interface / device, DO NOT REMOVE or MODIFY
 auto eth2
@@ -92,7 +90,6 @@ EOF
 
 
 # Blacklist SMBus Controller for VM
-# ==========================================================================
 function blacklist_modules() {
   # This is a VM blacklist
   echo 'blacklist i2c_piix4' | tee -a /etc/modprobe.d/blacklist.conf
@@ -100,13 +97,13 @@ function blacklist_modules() {
 }
 
 # Setup the box for AIO use
-# ==========================================================================
 function run_aio_script() {
   # Make the scripts directory
   if [ -d "/opt/aio-script" ];then
     rm -rf /opt/aio-script
   fi
 
+  # Make the AIO script directory
   mkdir -p /opt/aio-script
 
   # Get and Run the Install Script
@@ -117,9 +114,9 @@ function run_aio_script() {
 
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
-    source ExampleConfigs/master_neutron_dev.rc
+    source /opt/vm-rebuilder/neutron.rc
   else
-    source ExampleConfigs/master_dev.rc
+    source /opt/vm-rebuilder/nova_network.rc
   fi
 
   # Disable all images
@@ -134,7 +131,6 @@ function run_aio_script() {
 }
 
 # Get and setup the virt tools
-# ==========================================================================
 function virt_tools_setup() {
   REBUILDER_DIR="/opt/vm-rebuilder"
 
@@ -183,7 +179,6 @@ function virt_tools_setup() {
 }
 
 # OS Check
-# ==========================================================================
 if [ "$(grep -i -e redhat -e centos /etc/redhat-release)"  ]; then
   yum -y install curl git
   SYSTEM="RHEL"
@@ -204,11 +199,11 @@ USE_NEUTRON=${USE_NEUTRON:-"False"}
 # Setup our special device
 special_device
 
-# Get and Run the AIO Script
-run_aio_script
-
 # Get and Setup the Virt Tools
 virt_tools_setup
+
+# Get and Run the AIO Script
+run_aio_script
 
 # Set Boot Splash
 setup_bootspash

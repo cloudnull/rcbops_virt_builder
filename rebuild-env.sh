@@ -33,7 +33,7 @@
 export HOME="/root"
 
 # Set the Path
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Set the location of the script
 SCRIPT_DIR='/opt/vm-rebuilder'
@@ -440,7 +440,8 @@ case "$1" in
     package_vm
   ;;
   *)
-    echo "Usage: $0 {start|stop|restart|os-kill|force-rebuild|nuke-endpoints|package-instance}" >&2
+    USAGE="{start|stop|restart|os-kill|force-rebuild|nuke-endpoints|package-instance}"
+    echo "Usage: $0 ${USAGE}" >&2
     exit 1
   ;;
 esac
