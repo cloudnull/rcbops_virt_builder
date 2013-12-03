@@ -119,11 +119,6 @@ function run_aio_script() {
     source /opt/vm-rebuilder/nova_network.rc
   fi
 
-  # Disable all images
-  export CIRROS_IMAGE=False
-  export UBUNTU_IMAGE=False
-  export FEDORA_IMAGE=False
-
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
 
   # Leave the Directory

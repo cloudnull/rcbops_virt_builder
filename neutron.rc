@@ -23,3 +23,8 @@ export NEUTRON_ENABLED=True
 
 # Setup the network name
 export NEUTRON_NETWORK_NAME="raxaioionet"
+
+# Disable all images
+export CIRROS_IMAGE=False
+export UBUNTU_IMAGE=False
+export FEDORA_IMAGE=False

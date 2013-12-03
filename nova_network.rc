@@ -5,7 +5,7 @@ export DISABLE_ROLL_BACK=true
 export COOKBOOK_VERSION="master"
 
 # Setup cidrs
-export NOVA_INTERFACE="lo"
+export NOVA_INTERFACE="eth0"
 export MANAGEMENT_INTERFACE="eth0"
 
 # Setup passwords
@@ -15,3 +15,8 @@ export CHEF_PW="secrete"
 
 # Set an override for my roles
 export RUN_LIST="role[allinone],role[cinder-all],role[heat-all]"
+
+# Disable all images
+export CIRROS_IMAGE=False
+export UBUNTU_IMAGE=False
+export FEDORA_IMAGE=False
