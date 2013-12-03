@@ -82,7 +82,7 @@ function special_device() {
 # This is a special interface / device, DO NOT REMOVE or MODIFY
 auto eth2
 iface eth2 inet static
-    address 172.151.151.151
+    address 172.16.151.151
     netmask 255.255.255.0
 #### SPECIAL
 EOF

@@ -35,20 +35,20 @@ def _get_network(json_data, interface, override=False):
             for net in routes:
                 if 'scope' in net:
                     if override is True:
-                        return '172.151.151.0/24'
+                        return '172.16.151.0/24'
                     else:
-                        cidr = net.get('destination', '172.151.151.0/24')
+                        cidr = net.get('destination', '172.16.151.0/24')
                         if cidr is None:
-                            return '172.151.151.0/24'
+                            return '172.16.151.0/24'
                         else:
                             return cidr
                     break
             else:
-                return '172.151.151.0/24'
+                return '172.16.151.0/24'
         else:
-            return '172.151.151.0/24'
+            return '172.16.151.0/24'
     else:
-        return '172.151.151.0/24'
+        return '172.16.151.0/24'
 
 
 if __name__ == '__main__':
