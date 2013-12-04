@@ -101,9 +101,11 @@ function reset_rabbitmq() {
 
 # Stop Rabbit MQ
 function rabbitmq_kill() {
+  set +e
   # Replace IP address for Rabbit
   echo "Stopping RabbitMQ"
   service rabbitmq-server stop
+  set -e
 }
 
 # Stop and then Start RabbitMQ
