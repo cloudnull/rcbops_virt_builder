@@ -33,29 +33,18 @@ def _get_network(json_data, ifaces, override=False):
         return '172.16.151.0/24'
     else:
         jdi = json_data['network']['interfaces']
-        ifaces = ifaces.split(',')
-        if len(ifaces) > 2:
-            raise SystemExit('Too many interfaces, the most Interfaces I can'
-                             ' handle is two.')
-        else:
-            if isinstance(ifaces, list):
-                iface1, iface2 = ifaces
-            elif isinstance(ifaces, str):
-                iface1 = ifaces
-                iface2 = 'eth0'
-
-            device = jdi.get(iface1, jdi.get(iface2))
-            if device is not None:
-                if device.get('routes'):
-                    for net in device['routes']:
-                        if 'scope' in net:
-                            return net.get('destination', '172.16.151.0/24')
-                    else:
-                        return '172.16.151.0/24'
+        device = jdi.get(ifaces['iface1'], jdi.get(ifaces['iface2']))
+        if device is not None:
+            if device.get('routes'):
+                for net in device['routes']:
+                    if 'scope' in net:
+                        return net.get('destination', '172.16.151.0/24')
                 else:
                     return '172.16.151.0/24'
             else:
                 return '172.16.151.0/24'
+        else:
+            return '172.16.151.0/24'
 
 
 def _get_config(config_file='/opt/rebuilder.ini'):
@@ -117,13 +106,27 @@ if __name__ == '__main__':
     # Grab the device from the config file.
     rebuild_data = _get_config()
     interfaces = rebuild_data.get('public_device')
+    interfaces = interfaces.split(',')
+    if len(interfaces) < 2:
+        interfaces = {'iface1': interfaces[0], 'iface2': 'eth0'}
+    elif len(interfaces) > 2:
+        raise SystemExit('Too many interfaces, the most Interfaces I can'
+                         ' handle is two.')
+    elif len(interfaces) == 2:
+        iface1, iface2 = interfaces
+        interfaces = {'iface1': iface1, 'iface2': iface2}
 
     # Get and set Networks
     networks = overrides.get('osops_networks')
-    for network in ['management', 'nova', 'public']:
+    for network in ['management', 'public']:
         networks[network] = _get_network(json_data=data,
                                          ifaces=interfaces,
                                          override=override)
+
+    networks['nova'] = _get_network(json_data=data,
+                                    ifaces={'iface1': 'eth1',
+                                            'iface2': 'eth0'},
+                                    override=override)
 
     # Make sure Heat workers are set back to basics
     overrides['heat'] = {
