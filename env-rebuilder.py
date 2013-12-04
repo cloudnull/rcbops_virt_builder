@@ -29,25 +29,22 @@ import sys
 def _get_network(json_data, interface, override=False):
     """Get and set network interfaces."""
 
-    device = json_data['network']['interfaces'].get(interface)
-    if device is not None:
-        if device.get('routes'):
-            for net in device['routes']:
-                if 'scope' in net:
-                    if override is True:
-                        return '172.16.151.0/24'
-                    else:
-                        cidr = net.get('destination')
-                        if cidr is None:
-                            return '172.16.151.0/24'
-                        else:
-                            return cidr
+    if override is True:
+        return '172.16.151.0/24'
+    else:
+        jdi = json_data['network']['interfaces']
+        device = jdi.get(interface, jdi.get('eth1'))
+        if device is not None:
+            if device.get('routes'):
+                for net in device['routes']:
+                    if 'scope' in net:
+                        return net.get('destination', '172.16.151.0/24')
+                else:
+                    return '172.16.151.0/24'
             else:
                 return '172.16.151.0/24'
         else:
             return '172.16.151.0/24'
-    else:
-        return '172.16.151.0/24'
 
 
 def _get_config(config_file='/opt/rebuilder.ini'):
@@ -75,9 +72,6 @@ if __name__ == '__main__':
             override = False
     else:
         raise SystemExit('No Arguments Input file specified.')
-
-    # Grab the device from the config file.
-    interface = _get_config().get('device')
 
     # Open Ohai and get some data
     ohai_popen = subprocess.Popen(
@@ -108,6 +102,10 @@ if __name__ == '__main__':
     # Set MySQL Bind Address
     mysql = overrides.get('mysql')
     mysql['bind_address'] = '0.0.0.0'
+
+    # Grab the device from the config file.
+    rebuild_data = _get_config()
+    interface = rebuild_data.get('device')
 
     # Get and set Networks
     networks = overrides.get('osops_networks')

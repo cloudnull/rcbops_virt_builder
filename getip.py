@@ -39,13 +39,15 @@ def getip(device):
 
     # Grab eth0 from the data
     eths = data['network']['interfaces']
-    if device in eths:
-        eth = eths[device]['addresses']
+    eth = eths.get(device, eths.get('eth1'))
+    if eth is None:
+        raise SystemExit('No Device found for "%s"' % device)
     else:
-        raise SystemExit('No Device found for %s' % device)
-
+        addresses = eth.get('addresses')
+        if addresses is None:
+            raise SystemExit('No addresses found for "%s"' % device)
     # parse the data and print the value
-    for key, value in eth.items():
+    for key, value in addresses.items():
         if 'prefixlen' in value and value['prefixlen'] == '24':
             # Key found, print the value
             print(key)
@@ -74,4 +76,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         getip(device=sys.argv[1])
     else:
-        getip(device=_get_config())
+        getip(device=_get_config().get('device'))

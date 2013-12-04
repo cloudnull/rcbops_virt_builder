@@ -39,7 +39,7 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 SCRIPT_DIR='/opt/vm-rebuilder'
 
 # Set the systems IP ADDRESS
-SYS_IP=$(/opt/vm-rebuilder/getip.py eth1)
+SYS_IP=$(/opt/vm-rebuilder/getip.py)
 
 # What is the Name of this Script, and what are we starting
 PROGRAM="VM_REBUILDER At: ${SYS_IP}"
