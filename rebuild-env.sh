@@ -197,7 +197,7 @@ function reset_chef_env() {
   echo "Resetting Chef Environment"
   # Munge the Base JSON Environment
   ORIG_JSON="${SCRIPT_DIR}/base.json"
-  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP})
+  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON})
 
   # Overwrite the OLD Environment with a  NEW environment
   knife environment from file ${NEW_ENV}
@@ -247,7 +247,7 @@ function chef_rebuild_group() {
 function package_prep() {
   echo "Performing package prep"
   ORIG_JSON="${SCRIPT_DIR}/base.json"
-  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} ${SYS_IP} "override")
+  NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} "override")
 
   # Overwrite the OLD Environment with BASE environment
   if [ -f "/opt/last.ip.lock" ];then
