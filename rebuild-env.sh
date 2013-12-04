@@ -274,6 +274,7 @@ function start_vm() {
   restart_rabbitmq
   chef_rebuild_group
   reset_chef_env
+  echo "Running chef-client"
   retryerator chef-client
   reset_motd
 }
@@ -335,6 +336,7 @@ function stop_vm() {
 # Perform all packaging operations
 function package_vm() {
   reset_nova_endpoint
+  touch /opt/first.boot
   SYS_IP="127.0.0.1"
   package_prep
 
@@ -349,7 +351,6 @@ function package_vm() {
 
   stop_swap
   zero_fill
-  touch /opt/first.boot
   udev_truncate
   root_history
   shutdown_server
