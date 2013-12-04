@@ -18,8 +18,10 @@
 
 """Return the IPv4 Address for eth0 from ohai."""
 
+import ConfigParser
 import subprocess
 import json
+import os
 import sys
 
 
@@ -53,8 +55,23 @@ def getip(device):
         raise SystemExit('No IPv4 address found')
 
 
+def _get_config(config_file='/opt/rebuilder.ini'):
+    """Load the configuration file from the rebuilder."""
+
+    if os.path.isfile(config_file):
+        config = ConfigParser.SafeConfigParser()
+        config.read([config_file])
+        section = 'BaseNetwork'
+        if section in config.sections():
+            return dict(config.items(section))
+        else:
+            raise SystemExit('No Section found')
+    else:
+        raise SystemExit('Config file %s does not exist.' % config_file)
+
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         getip(device=sys.argv[1])
     else:
-        getip(device='eth0')
+        getip(device=_get_config())

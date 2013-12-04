@@ -119,17 +119,17 @@ function restart_rabbitmq(){
 function reset_motd() {
   cp /etc/motd.old /etc/motd
   echo "Resetting MOTD"
+
   # Change the Horizon URL in the MOTD
-  sed "s/Horizon URL is.*/Horizon URL is                 : ${SYS_IP}:443/" /etc/motd > /etc/motd2
+  HORIZON="https:\/\/${SYS_IP}:443"
+  sed "s/Horizon URL is.*/Horizon URL is                 : ${HORIZON}/" /etc/motd > /etc/motd2
   mv /etc/motd2 /etc/motd
 
-  sed "s/Chef Server URL is.*/Chef Server URL is             : ${SYS_IP}:4000/" /etc/motd > /etc/motd2
+  CHEF_SERVER="https:\/\/${SYS_IP}:4000"
+  sed "s/Chef Server URL is.*/Chef Server URL is             : ${CHEF_SERVER}/" /etc/motd > /etc/motd2
   mv /etc/motd2 /etc/motd
-
 }
 
-
-# CHEF Actions
 # Rebuild Knife
 function reset_knife_rb() {
   echo "Resetting Knife"
@@ -152,7 +152,6 @@ cookbook_path            [ '/opt/allinoneinone/chef-cookbooks/cookbooks' ]
 EOF
 }
 
-
 # Graceful Shutdown of ChefServer
 function chef_kill() {
   chef-server-ctl graceful-kill
@@ -160,7 +159,6 @@ function chef_kill() {
   rm /etc/chef-server/chef-server-secrets.json
   rm /var/chef/cache/remote_file/*.json
 }
-
 
 # Reconfigure Chef Server and client.rb
 function reset_chef_server() {
@@ -191,7 +189,6 @@ EOF
   sleep 10
 }
 
-
 # Rebuild Chef Environment
 function reset_chef_env() {
   echo "Resetting Chef Environment"
@@ -200,12 +197,11 @@ function reset_chef_env() {
   NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON})
 
   # Overwrite the OLD Environment with a  NEW environment
-  knife environment from file ${NEW_ENV}
+  retryerator knife environment from file ${NEW_ENV}
 }
 
-
 # Run Chef-client to rebuild all the things
-function run_chef_client() {
+function retryerator() {
   set +v
   set +e
 
@@ -218,7 +214,7 @@ function run_chef_client() {
   while [ $? -ne 0 -a ${RETRY} -lt ${MAX_RETRIES} ];do
     # Begin Cooking
     RETRY=$((${RETRY}+1))
-    chef-client
+    $@
   done
 
   if [ ${RETRY} -eq ${MAX_RETRIES} ];then
@@ -236,12 +232,10 @@ EOF
   set -e
 }
 
-
 function chef_rebuild_group() {
   reset_knife_rb
   reset_chef_server
 }
-
 
 # Package For Distribution
 function package_prep() {
@@ -255,14 +249,13 @@ function package_prep() {
   fi
 
   # Overwrite the OLD Environment with a  NEW environment
-  knife environment from file ${NEW_ENV}
+  retryerator knife environment from file ${NEW_ENV}
 
   # Nuke our history
   echo '' | tee /root/.bash_history
   history -c
   sync
 }
-
 
 # Clear all of the cache things we can find
 function clear_cache() {
@@ -279,10 +272,9 @@ function start_vm() {
   restart_rabbitmq
   chef_rebuild_group
   reset_chef_env
-  run_chef_client
+  retryerator chef-client
   reset_motd
 }
-
 
 # Disable Swap
 function start_swap() {
@@ -294,7 +286,6 @@ function start_swap() {
   # Enable all the swaps
   swapon -a
 }
-
 
 # Fill all remaining Disk with Zero's
 function zero_fill() {
@@ -313,14 +304,12 @@ function zero_fill() {
   sleep 1
 }
 
-
 # Truncate the contents of our net rules
 function udev_truncate() {
     cat > /etc/udev/rules.d/70-persistent-net.rules<<EOF
 # Net Device Rules
 EOF
 }
-
 
 # Truncate the root bash history
 function root_history() {
@@ -329,7 +318,6 @@ function root_history() {
   fi
   sync
 }
-
 
 # Stop the VM services
 function stop_vm() {
@@ -342,14 +330,13 @@ function stop_vm() {
   sync
 }
 
-
 # Perform all packaging operations
 function package_vm() {
   reset_nova_endpoint
   SYS_IP="127.0.0.1"
   package_prep
 
-  run_chef_client
+  retryerator chef-client
   clear_cache
   os_kill
 
@@ -366,7 +353,6 @@ function package_vm() {
   shutdown_server
 }
 
-
 # Stop Swap
 function stop_swap() {
   SWAPFILE="/tmp/SwapFile"
@@ -380,12 +366,10 @@ function stop_swap() {
   fi
 }
 
-
 # System Stop
 function shutdown_server() {
   shutdown -P now
 }
-
 
 # Check before Rebuilding
 function rebuild_check() {
@@ -412,6 +396,7 @@ case "$1" in
   start)
     clear
     echo "${PROGRAM} is Initializing..."
+    reset_motd
     rebuild_check
     start_vm
   ;;

@@ -88,7 +88,6 @@ device=br0
 EOF
 }
 
-
 # Special Device setup
 function special_device() {
   TEMPINT="/tmp/interfaces"
@@ -105,7 +104,6 @@ iface eth2 inet static
 #### SPECIAL
 EOF
 }
-
 
 # Blacklist SMBus Controller for VM
 function blacklist_modules() {
@@ -180,7 +178,6 @@ function virt_tools_setup() {
 
   # Leave the Directory
   popd
-
 
   # Make the symlink
   ln -f -s /opt/vm-rebuilder/rebuild-env.sh /etc/init.d/rebuild-env
