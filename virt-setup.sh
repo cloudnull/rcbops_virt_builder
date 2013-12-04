@@ -71,6 +71,24 @@ EOF
 }
 
 
+# drop the system config files needed to rebuild the environment
+function neutron_ini() {
+  cat > /opt/rebuilder.ini<<EOF
+# Neutron Network Setup
+[BaseNetwork]
+device=eth3
+EOF
+}
+
+nova_network_ini() {
+  cat > /opt/rebuilder.ini<<EOF
+# Nova Network Setup
+[BaseNetwork]
+device=br0
+EOF
+}
+
+
 # Special Device setup
 function special_device() {
   TEMPINT="/tmp/interfaces"
@@ -115,8 +133,10 @@ function run_aio_script() {
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
     source /opt/vm-rebuilder/neutron.rc
+    neutron_ini
   else
     source /opt/vm-rebuilder/nova_network.rc
+    nova_network_ini
   fi
 
   chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
