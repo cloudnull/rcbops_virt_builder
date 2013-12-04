@@ -200,6 +200,7 @@ function reset_chef_env() {
 
   # Overwrite the OLD Environment with a  NEW environment
   retryerator knife environment from file ${NEW_ENV}
+  sleep 5
 }
 
 # Run Chef-client to rebuild all the things
@@ -386,6 +387,7 @@ function rebuild_check() {
     fi
   else
     echo "Lock File not found..."
+    os_kill
   fi
 }
 
