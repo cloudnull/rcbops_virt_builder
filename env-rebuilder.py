@@ -18,6 +18,7 @@
 
 """Perform a Network Reset on a chef environment."""
 
+import ConfigParser
 import json
 import tempfile
 import os
@@ -31,18 +32,16 @@ def _get_network(json_data, interface, override=False):
     device = json_data['network']['interfaces'].get(interface)
     if device is not None:
         if device.get('routes'):
-            routes = device['routes']
-            for net in routes:
+            for net in device['routes']:
                 if 'scope' in net:
                     if override is True:
                         return '172.16.151.0/24'
                     else:
-                        cidr = net.get('destination', '172.16.151.0/24')
+                        cidr = net.get('destination')
                         if cidr is None:
                             return '172.16.151.0/24'
                         else:
                             return cidr
-                    break
             else:
                 return '172.16.151.0/24'
         else:
@@ -51,17 +50,34 @@ def _get_network(json_data, interface, override=False):
         return '172.16.151.0/24'
 
 
+def _get_config(config_file='/opt/rebuilder.ini'):
+    """Load the configuration file from the rebuilder."""
+
+    if os.path.isfile(config_file):
+        config = ConfigParser.SafeConfigParser()
+        config.read([config_file])
+        section = 'BaseNetwork'
+        if section in config.sections():
+            return dict(config.items(section))
+        else:
+            raise SystemExit('No Section found')
+    else:
+        raise SystemExit('Config file %s does not exist.' % config_file)
+
+
 if __name__ == '__main__':
     # Run the Munger
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1:
         input_file = sys.argv[1]
-        ip_address = sys.argv[2]
-        if len(sys.argv) == 4:
+        if len(sys.argv) == 3:
             override = True
         else:
             override = False
     else:
         raise SystemExit('No Arguments Input file specified.')
+
+    # Grab the device from the config file.
+    interface = _get_config().get('device')
 
     # Open Ohai and get some data
     ohai_popen = subprocess.Popen(
@@ -71,20 +87,6 @@ if __name__ == '__main__':
 
     # Load Ohai data as a Dict
     data = json.loads(ohai[0])
-
-    # Set Nova Network Interfaces
-    nova_network = _get_network(
-        json_data=data, interface="eth0", override=override
-    )
-
-    # Set Public Network Interfaces
-    public_network = _get_network(
-        json_data=data, interface="eth0", override=override
-    )
-
-    management_network = _get_network(
-        json_data=data, interface="eth0", override=override
-    )
 
     # Open passed JSON file
     with open(input_file, 'rb') as knife_env:
@@ -107,11 +109,12 @@ if __name__ == '__main__':
     mysql = overrides.get('mysql')
     mysql['bind_address'] = '0.0.0.0'
 
-    # Get Networks
+    # Get and set Networks
     networks = overrides.get('osops_networks')
-    networks['management'] = management_network
-    networks['nova'] = nova_network
-    networks['public'] = public_network
+    for network in ['management', 'nova', 'public']:
+        networks[network] = _get_network(json_data=data,
+                                         interface=interface,
+                                         override=override)
 
     # Make sure Heat workers are set back to basics
     overrides['heat'] = {
@@ -142,4 +145,5 @@ if __name__ == '__main__':
     with open(write_file, 'wb') as knife_env:
         knife_env.write(json.dumps(chef_env, indent=2))
 
+    # Print the location of the new json file.
     print('%s' % write_file)
