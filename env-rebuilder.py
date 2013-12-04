@@ -26,25 +26,31 @@ import subprocess
 import sys
 
 
-def _get_network(json_data, interface, override=False):
+def _get_network(json_data, ifaces, override=False):
     """Get and set network interfaces."""
 
     if override is True:
         return '172.16.151.0/24'
     else:
         jdi = json_data['network']['interfaces']
-        device = jdi.get(interface, jdi.get('eth1'))
-        if device is not None:
-            if device.get('routes'):
-                for net in device['routes']:
-                    if 'scope' in net:
-                        return net.get('destination', '172.16.151.0/24')
+        ifaces = ifaces.split(',')
+        if len(ifaces) > 2:
+            raise SystemExit('Too many interfaces, the most Interfaces I can'
+                             ' handle is two.')
+        else:
+            iface1, iface2 = ifaces.split(',')
+            device = jdi.get(iface1, jdi.get(iface2))
+            if device is not None:
+                if device.get('routes'):
+                    for net in device['routes']:
+                        if 'scope' in net:
+                            return net.get('destination', '172.16.151.0/24')
+                    else:
+                        return '172.16.151.0/24'
                 else:
                     return '172.16.151.0/24'
             else:
                 return '172.16.151.0/24'
-        else:
-            return '172.16.151.0/24'
 
 
 def _get_config(config_file='/opt/rebuilder.ini'):
@@ -105,13 +111,13 @@ if __name__ == '__main__':
 
     # Grab the device from the config file.
     rebuild_data = _get_config()
-    interface = rebuild_data.get('device')
+    interfaces = rebuild_data.get('public_device')
 
     # Get and set Networks
     networks = overrides.get('osops_networks')
     for network in ['management', 'nova', 'public']:
         networks[network] = _get_network(json_data=data,
-                                         interface=interface,
+                                         ifaces=interfaces,
                                          override=override)
 
     # Make sure Heat workers are set back to basics

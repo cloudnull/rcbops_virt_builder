@@ -16,7 +16,7 @@
 #
 # Author Kevin.Carter@Rackspace.com
 
-"""Return the IPv4 Address for eth0 from ohai."""
+"""Return the IPv4 Address for a user device as found in ohai."""
 
 import ConfigParser
 import subprocess
@@ -76,4 +76,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         getip(device=sys.argv[1])
     else:
-        getip(device=_get_config().get('device'))
+        getip(device=_get_config().get('user_device'))

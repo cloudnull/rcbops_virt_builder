@@ -76,7 +76,8 @@ function neutron_ini() {
   cat > /opt/rebuilder.ini<<EOF
 # Neutron Network Setup
 [BaseNetwork]
-device=eth3
+public_device=eth3
+user_device=eth1
 EOF
 }
 
@@ -84,7 +85,8 @@ nova_network_ini() {
   cat > /opt/rebuilder.ini<<EOF
 # Nova Network Setup
 [BaseNetwork]
-device=br0
+public_device=br0,eth0
+user_device=eth1
 EOF
 }
 
