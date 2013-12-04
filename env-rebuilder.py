@@ -38,7 +38,12 @@ def _get_network(json_data, ifaces, override=False):
             raise SystemExit('Too many interfaces, the most Interfaces I can'
                              ' handle is two.')
         else:
-            iface1, iface2 = ifaces.split(',')
+            if isinstance(ifaces, list):
+                iface1, iface2 = ifaces
+            elif isinstance(ifaces, str):
+                iface1 = ifaces
+                iface2 = 'eth0'
+
             device = jdi.get(iface1, jdi.get(iface2))
             if device is not None:
                 if device.get('routes'):
