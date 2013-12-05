@@ -105,27 +105,20 @@ if __name__ == '__main__':
 
     # Grab the device from the config file.
     rebuild_data = _get_config()
-    interfaces = rebuild_data.get('public_device')
     user_iface = rebuild_data.get('user_device')
-    interfaces = interfaces.split(',')
-    if len(interfaces) < 2:
-        interfaces = {'iface1': interfaces[0], 'iface2': 'eth0'}
-    elif len(interfaces) > 2:
-        raise SystemExit('Too many interfaces, the most Interfaces I can'
-                         ' handle is two.')
-    elif len(interfaces) == 2:
-        iface1, iface2 = interfaces
-        interfaces = {'iface1': iface1, 'iface2': iface2}
 
     # Get and set Networks
     networks = overrides.get('osops_networks')
     networks['public'] = _get_network(json_data=data,
-                                      ifaces=interfaces,
+                                      ifaces={'iface1': user_iface,
+                                              'iface2': 'lo'},
                                       override=override)
+
     networks['management'] = _get_network(json_data=data,
                                           ifaces={'iface1': user_iface,
                                                   'iface2': 'lo'},
                                           override=override)
+
     networks['nova'] = _get_network(json_data=data,
                                     ifaces={'iface1': user_iface,
                                             'iface2': 'eth0'},
