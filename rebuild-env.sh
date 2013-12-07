@@ -382,19 +382,19 @@ function shutdown_server() {
 
 # Check before Rebuilding
 function rebuild_check() {
+  echo "Checking the environment."
+  set +e
+  SYS="$(grep -w \"${SYS_IP}\" /opt/last_user.ip.lock)"
+  PUB="$(grep -w \"${PUB_IP}\" /opt/last_public.ip.lock)"
+  set -e
   if [ -f "/opt/first.boot" ];then
     echo "Warming up for first boot process..."
     rm /opt/first.boot
-  elif [ -d "/opt/" ];then
-    SYS="$(grep -w \"${SYS_IP}\" /opt/last_user.ip.lock)"
-    PUB="$(grep -w \"${PUB_IP}\" /opt/last_public.ip.lock)"
-    if [ "${SYS}" ] && [ "${PUB}" ];then
-      echo "No System Changes Detected, Continuing with Regular Boot..."
-      exit 0
-    fi
+  elif [ ! -z "${SYS}" ] && [ ! -z "${PUB}" ];then
+    echo "No System Changes Detected, Continuing with Regular Boot..."
+    exit 0
   else
-    echo "Lock File not found..."
-    os_kill
+    echo "Changes detected Recooking the box..."
   fi
 }
 
