@@ -40,6 +40,7 @@ SCRIPT_DIR='/opt/vm-rebuilder'
 
 # Set the systems IP ADDRESS
 SYS_IP=$(/opt/vm-rebuilder/getip.py)
+PUB_IP=$(/opt/vm-rebuilder/getip.py eth0)
 
 # What is the Name of this Script, and what are we starting
 PROGRAM="VM_REBUILDER At: ${SYS_IP}"
@@ -247,10 +248,12 @@ function package_prep() {
   NEW_ENV=$(${SCRIPT_DIR}/env-rebuilder.py ${ORIG_JSON} "override")
 
   # Overwrite the OLD Environment with BASE environment
-  if [ -f "/opt/last.ip.lock" ];then
-    rm /opt/last.ip.lock
+  if [ -f "/opt/last_user.ip.lock" ];then
+    rm /opt/last_user.ip.lock
   fi
-
+  if [ -f "/opt/last_public.ip.lock" ];then
+    rm /opt/last_public.ip.lock
+  fi
   # Overwrite the OLD Environment with a  NEW environment
   retryerator knife environment from file ${NEW_ENV}
 
@@ -327,7 +330,8 @@ function root_history() {
 function stop_vm() {
   reset_rabbitmq
   rabbitmq_kill
-  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last.ip.lock
+  echo "Last System IP address was: \"$SYS_IP\"" | tee /opt/last_user.ip.lock
+  echo "Last Public IP address was: \"$PUB_IP\"" | tee /opt/last_public.ip.lock
 
   # Flush all of the routes on the system
   ip route flush all
@@ -354,6 +358,7 @@ function package_vm() {
   zero_fill
   udev_truncate
   root_history
+  touch /forcefsck
   shutdown_server
 }
 
@@ -380,8 +385,10 @@ function rebuild_check() {
   if [ -f "/opt/first.boot" ];then
     echo "Warming up for first boot process..."
     rm /opt/first.boot
-  elif [ -f "/opt/last.ip.lock" ];then
-    if [ "$(grep -w \"${SYS_IP}\" /opt/last.ip.lock)" ];then
+  elif [ -d "/opt/" ];then
+    SYS="$(grep -w \"${SYS_IP}\" /opt/last_user.ip.lock)"
+    PUB="$(grep -w \"${PUB_IP}\" /opt/last_public.ip.lock)"
+    if [ "${SYS}" ] && [ "${PUB}" ];then
       echo "No System Changes Detected, Continuing with Regular Boot..."
       exit 0
     fi

@@ -76,8 +76,8 @@ function neutron_ini() {
   cat > /opt/rebuilder.ini<<EOF
 # Neutron Network Setup
 [BaseNetwork]
-public_device=eth3
-user_device=eth1
+public_device=eth0
+user_device=eth2
 EOF
 }
 
@@ -85,25 +85,8 @@ nova_network_ini() {
   cat > /opt/rebuilder.ini<<EOF
 # Nova Network Setup
 [BaseNetwork]
-public_device=br0,eth0
-user_device=eth1
-EOF
-}
-
-# Special Device setup
-function special_device() {
-  TEMPINT="/tmp/interfaces"
-  sed '/^#### SPECIAL/,/^#### SPECIAL/d' /etc/network/interfaces > ${TEMPINT}
-  mv /tmp/interfaces /etc/network/interfaces
-
-  cat >> /etc/network/interfaces <<EOF
-#### SPECIAL
-# This is a special interface / device, DO NOT REMOVE or MODIFY
-auto eth2
-iface eth2 inet static
-    address 172.16.151.151
-    netmask 255.255.255.0
-#### SPECIAL
+public_device=eth0
+user_device=eth2
 EOF
 }
 
@@ -132,14 +115,12 @@ function run_aio_script() {
 
   # Source our Options
   if [ "${USE_NEUTRON}" == "True" ];then
-    source /opt/vm-rebuilder/neutron.rc
     neutron_ini
   else
-    source /opt/vm-rebuilder/nova_network.rc
     nova_network_ini
   fi
 
-  chmod +x rcbops_allinone_inone.sh && ./rcbops_allinone_inone.sh
+  chmod +x rcbops_allinone_inone.sh
 
   # Leave the Directory
   popd
@@ -210,14 +191,11 @@ GITHUB_URL=${GITHUB_URL:-"https://github.com/cloudnull"}
 # Set if you want to use Neutron; True||False. Default is False.
 USE_NEUTRON=${USE_NEUTRON:-"False"}
 
-# Setup our special device
-special_device
+# Prep the AIO script
+run_aio_script
 
 # Get and Setup the Virt Tools
 virt_tools_setup
-
-# Get and Run the AIO Script
-run_aio_script
 
 # Set Boot Splash
 setup_bootspash

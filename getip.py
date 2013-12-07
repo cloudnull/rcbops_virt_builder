@@ -37,9 +37,9 @@ def getip(device):
     # Load the aata as JSON
     data = json.loads(ohai[0])
 
-    # Grab eth0 from the data
+    num = device[-1]
     eths = data['network']['interfaces']
-    eth = eths.get(device, eths.get('eth1'))
+    eth = eths.get(device, eths.get('br%s' % num, eths.get('lo')))
     if eth is None:
         raise SystemExit('No Device found for "%s"' % device)
     else:
@@ -48,7 +48,7 @@ def getip(device):
             raise SystemExit('No addresses found for "%s"' % device)
     # parse the data and print the value
     for key, value in addresses.items():
-        if 'prefixlen' in value and value['prefixlen'] == '24':
+        if 'prefixlen' in value and value['prefixlen'] <= '24':
             # Key found, print the value
             print(key)
             break

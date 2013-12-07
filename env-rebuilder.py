@@ -105,23 +105,23 @@ if __name__ == '__main__':
 
     # Grab the device from the config file.
     rebuild_data = _get_config()
-    user_iface = rebuild_data.get('user_device')
+    public_iface = rebuild_data.get('public_device')
 
     # Get and set Networks
     networks = overrides.get('osops_networks')
     networks['public'] = _get_network(json_data=data,
-                                      ifaces={'iface1': user_iface,
-                                              'iface2': 'lo'},
+                                      ifaces={'iface1': public_iface,
+                                              'iface2': 'br0'},
                                       override=override)
 
     networks['management'] = _get_network(json_data=data,
-                                          ifaces={'iface1': user_iface,
-                                                  'iface2': 'lo'},
+                                          ifaces={'iface1': public_iface,
+                                                  'iface2': 'br0'},
                                           override=override)
 
     networks['nova'] = _get_network(json_data=data,
-                                    ifaces={'iface1': user_iface,
-                                            'iface2': 'eth0'},
+                                    ifaces={'iface1': public_iface,
+                                            'iface2': 'br0'},
                                     override=override)
 
     # Make sure Heat workers are set back to basics

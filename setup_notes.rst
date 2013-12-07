@@ -97,9 +97,13 @@ Also modify the default base config hash::
     }
 
 
-re-Upload all cookbooks::
+re-Upload all cookbooks, run chef-cleint, and restart apache, gather static files::
 
     knife cookbook upload -a -o /opt/allinoneinone/chef-cookbooks/cookbooks/
+    chef-client
+    service apache2 restart && service memcached restart
+    /usr/share/openstack-dashboard/manage.py collectstatic --noinput
+
 
 
 Chef Environment
