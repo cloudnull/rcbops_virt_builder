@@ -114,7 +114,7 @@ function run_aio_script() {
   pushd /opt/aio-script
 
   # Source our Options
-  if [ "${USE_NEUTRON}" == "True" ];then
+  if [ "${NEUTRON_ENABLED}" == "True" ];then
     neutron_ini
   else
     nova_network_ini
@@ -189,7 +189,7 @@ fi
 GITHUB_URL=${GITHUB_URL:-"https://github.com/cloudnull"}
 
 # Set if you want to use Neutron; True||False. Default is False.
-USE_NEUTRON=${USE_NEUTRON:-"False"}
+NEUTRON_ENABLED=${NEUTRON_ENABLED:-"False"}
 
 # Prep the AIO script
 run_aio_script
