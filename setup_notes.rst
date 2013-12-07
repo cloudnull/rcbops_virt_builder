@@ -60,10 +60,9 @@ Install Openstack
 
 Get the installation script and run the setup.
 
-Get the script::
+Goto the script directory::
 
-    git clone https://github.com/cloudnull/rcbops_allinone_inone
-    pushd rcbops_allinone_inone
+    pushd /opt/aio-script/
 
 
 Run setup for Openstack exports::
@@ -109,6 +108,7 @@ Now run the installation script::
     knife environment show allinoneinone -fj > /opt/vm-rebuilder/base.json
     # backup the new motd
     cp /etc/motd /etc/motd.old
+    popd
 
 
 Horizon
@@ -179,18 +179,16 @@ Now reboot the system::
 Glance Image Create
 -------------------
 
-Download your base image file, uncompress the archive::
+Download your base image and load it into glance::
 
     wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
-
-
-Create your Image for Cirros::
 
     glance image-create --file cirros-0.3.0-x86_64-disk.img \
                         --is-public true \
                         --disk-format raw \
                         --container-format bare \
                         --name "cirros"
+    rm cirros-0.3.0-x86_64-disk.img
 
 
 Repeate for another image if you want.
