@@ -182,8 +182,8 @@ nginx["ssl_port"] = 4000
 nginx["non_ssl_port"] = 4080
 nginx["enable_non_ssl"] = true
 rabbitmq["enable"] = false
-rabbitmq["password"] = "secrete"
-chef_server_webui['web_ui_admin_default_password'] = "secrete"
+rabbitmq["password"] = "Passw0rd"
+chef_server_webui['web_ui_admin_default_password'] = "Passw0rd"
 bookshelf['url'] = "https://${SYS_IP}:4000"
 EOF
 
