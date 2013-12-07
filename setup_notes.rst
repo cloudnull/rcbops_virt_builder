@@ -74,7 +74,7 @@ Run setup for Openstack exports::
     export COOKBOOK_VERSION="master"
 
     # Setup cidrs
-    export NOVA_INTERFACE="eth0"
+    export NOVA_INTERFACE="eth2"
     export MANAGEMENT_INTERFACE="eth0"
 
     # Setup passwords
