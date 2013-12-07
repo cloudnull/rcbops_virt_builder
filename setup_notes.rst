@@ -20,45 +20,101 @@ Make your default network interfaces file look like this::
     iface lo inet loopback
 
     # The primary network interface
-    auto eth1
-    iface eth1 inet dhcp
-
     auto eth0
     iface eth0 inet dhcp
 
+    auto eth1
+    iface eth1 inet static
+      address 10.50.51.50
+      netmask 255.255.255.0
 
-Neutron Install
-~~~~~~~~~~~~~~~
+    auto eth2
+    iface eth2 inet dhcp
+
+    auto eth3
+    iface eth3 inet static
+      address 172.16.151.150
+      netmask 255.255.255.0
+
+
+Setup Script
+~~~~~~~~~~~~
+
+Get the setup scripts and then run the setup script::
+
+    git clone https://github.com/cloudnull/rcbops_virt_builder
+    pushd rcbops_virt_builder
+    bash ./virt-setup.sh
+    popd
+
 
 * When running the setup script you first have to export two variables to tell the script to use neutron, and what interface neutron will be assigned to.
 
-export::
+Setup::
 
-    export USE_NEUTRON=True
-    export NEUTRON_INTERFACE="eth0"
+    export NEUTRON_ENABLED=True
 
 
-Nova Compute
-------------
+Install Openstack
+~~~~~~~~~~~~~~~~~
 
-Edit the file ``/opt/allinoneinone/chef-cookbooks/cookbooks/nova/recipes/compute.rb``
+Get the installation script and run the setup.
 
-create an entry for LXC support in the VM, Line 30-37::
+Get the script::
 
-    if platform?(%w(ubuntu))
-      case node["nova"]["libvirt"]["virt_type"]
-      when "kvm"
-        nova_compute_packages.push("nova-compute-kvm")
-      when "qemu"
-        nova_compute_packages.push("nova-compute-qemu")
-      when "lxc"
-        nova_compute_packages.push("nova-compute-lxc")
-      end
-    end
+    git clone https://github.com/cloudnull/rcbops_allinone_inone
+    pushd rcbops_allinone_inone
+
+
+Run setup for Openstack exports::
+
+    # Setup no roll back on failure
+    export DISABLE_ROLL_BACK=true
+
+    # Setup a master dev environment
+    export COOKBOOK_VERSION="master"
+
+    # Setup cidrs
+    export NOVA_INTERFACE="eth0"
+    export MANAGEMENT_INTERFACE="eth0"
+
+    # Setup passwords
+    export NOVA_PW="Passw0rd"
+    export RMQ_PW="Passw0rd"
+    export CHEF_PW="Passw0rd"
+
+    # Set an override for my roles
+    export RUN_LIST="role[allinone],role[single-network-node],role[heat-all],role[cinder-all]"
+
+    # Add Some default Images
+    export UBUNTU_IMAGE=False
+    export FEDORA_IMAGE=False
+
+
+If using Neutron add the following::
+
+    # Setup for Neutron
+    export NEUTRON_NAME="neutron"
+    export NEUTRON_INTERFACE="eth1"
+    export NEUTRON_ENABLED=True
+
+    # Setup the network name
+    export NEUTRON_NETWORK_NAME="raxaioionet"
+
+
+Now run the installation script::
+
+    bash ./rcbops_allinone_inone.sh
+    # Save the new environment file upon completion.
+    knife environment show allinoneinone -fj > /opt/vm-rebuilder/base.json
+    # backup the new motd
+    cp /etc/motd /etc/motd.old
 
 
 Horizon
 -------
+
+* Get the SPOG module and install it.
 
 edit file ``/opt/allinoneinone/chef-cookbooks/cookbooks/horizon/templates/default/local_settings.py.erb``
 
@@ -106,21 +162,6 @@ re-Upload all cookbooks, run chef-cleint, and restart apache, gather static file
 
 
 
-Chef Environment
-----------------
-
-edit the file ``/opt/vm-rebuilder/base.json``
-change line 43 to: ``"virt_type": "lxc"``
-change line 35 to: ``"image_upload": false``
-
-Now edit the chef environment::
-
-    knife environment edit allinoneinone
-
-
-Make the sames changes to the saved chef environment as well
-
-
 Apply Changes to the System
 ---------------------------
 
@@ -131,7 +172,7 @@ create the first boot file::
 
 Now reboot the system::
 
-    shutdown -r now
+    shutdown -rF now
 
 
 
@@ -140,18 +181,19 @@ Glance Image Create
 
 Download your base image file, uncompress the archive::
 
-    curl -O http://cloud-images.ubuntu.com/raring/current/raring-server-cloudimg-amd64.tar.gz
-    tar xzf raring-server-cloudimg-amd64.tar.gz
+    wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
 
-Create your Image for Ubuntu::
+Create your Image for Cirros::
 
-    glance image-create --file raring-server-cloudimg-amd64.img \
+    glance image-create --file cirros-0.3.0-x86_64-disk.img \
                         --is-public true \
                         --disk-format raw \
                         --container-format bare \
-                        --name "precise" \
-                        --property hypervisor_type=lxc
+                        --name "cirros"
+
+
+Repeate for another image if you want.
 
 
 Getting the System Ready for Export
