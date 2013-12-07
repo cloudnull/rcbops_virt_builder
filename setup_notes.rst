@@ -37,6 +37,9 @@ Make your default network interfaces file look like this::
       netmask 255.255.255.0
 
 
+Now go install your GUEST additions for the Desktop Hypervisor you are using.
+
+
 Setup Script
 ~~~~~~~~~~~~
 

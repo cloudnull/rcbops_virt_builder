@@ -27,7 +27,7 @@
       ],
       "users": {
         "admin": {
-          "password": "secrete",
+          "password": "Passw0rd",
           "role": {
             "admin": [
               "admin"
