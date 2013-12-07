@@ -157,10 +157,12 @@ EOF
 
 # Graceful Shutdown of ChefServer
 function chef_kill() {
+  set +e
   chef-server-ctl graceful-kill
   rm /etc/chef-server/chef-server-running.json
   rm /etc/chef-server/chef-server-secrets.json
   rm /var/chef/cache/remote_file/*.json
+  set -e
 }
 
 # Reconfigure Chef Server and client.rb

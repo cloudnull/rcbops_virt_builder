@@ -201,7 +201,7 @@ The rebuild service has a function that will perform all of the needed tasks to 
 
 Run the service function::
 
-    service rebuild-env package-instance
+    [ -f "~/.bash_history" ] && rm ~/.bash_history; history -c && sync && service rebuild-env package-instance
 
 
 Upon completion, the appliance will be offline and ready for export into OVA format.
