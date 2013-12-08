@@ -16,7 +16,7 @@
 #
 # Author Kevin.Carter@Rackspace.com
 
-"""Return the IPv4 Address for a user device as found in ohai."""
+"""Return the IPv4 Address for a device as found on the system."""
 
 import ConfigParser
 import netifaces
