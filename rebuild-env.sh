@@ -189,7 +189,10 @@ EOF
 
   # Reconfigure Chef-server
   chef-server-ctl reconfigure
+  sleep 2
+  set +e
   chef-server-ctl restart
+  set -e
   echo "Resting Post Chef Restart"
   sleep 10
 }
