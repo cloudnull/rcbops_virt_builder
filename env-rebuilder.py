@@ -34,6 +34,9 @@ def _get_network(json_data, ifaces, override=False):
     else:
         jdi = json_data['network']['interfaces']
         device = jdi.get(ifaces['iface1'], jdi.get(ifaces['iface2']))
+        if 'arp' not in device:
+            device = jdi.get(ifaces['iface2'])
+
         if device is not None:
             if device.get('routes'):
                 for net in device['routes']:
