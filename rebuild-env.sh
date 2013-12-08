@@ -158,7 +158,7 @@ EOF
 # Graceful Shutdown of ChefServer
 function chef_kill() {
   set +e
-  chef-server-ctl graceful-kill
+  retryerator chef-server-ctl graceful-kill
   rm /etc/chef-server/chef-server-running.json
   rm /etc/chef-server/chef-server-secrets.json
   rm /var/chef/cache/remote_file/*.json
@@ -188,10 +188,10 @@ bookshelf['url'] = "https://${SYS_IP}:4000"
 EOF
 
   # Reconfigure Chef-server
-  chef-server-ctl reconfigure
+  retryerator chef-server-ctl reconfigure
   sleep 2
   set +e
-  chef-server-ctl restart
+  retryerator chef-server-ctl restart
   set -e
   echo "Resting Post Chef Restart"
   sleep 10
