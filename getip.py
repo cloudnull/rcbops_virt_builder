@@ -27,12 +27,16 @@ import sys
 def getip(device):
     """Get the IPv4 Address for the Device."""
 
-    ips = netifaces.ifaddresses(device)[netifaces.AF_INET]
-    ip_list = [ip for ip in ips
-               if 'addr' in ip and not ip['addr'].startswith('172.16.0')]
-    if ip_list:
-        if 'addr' in ip_list[0]:
-            return ip_list[0]['addr']
+    ip_addresses = netifaces.ifaddresses(device)
+    if netifaces.AF_INET in ip_addresses:
+        ips = ip_addresses[netifaces.AF_INET]
+        ip_list = [ip for ip in ips
+                   if 'addr' in ip and not ip['addr'].startswith('172.16.0')]
+        if ip_list:
+            if 'addr' in ip_list[0]:
+                return ip_list[0]['addr']
+            else:
+                return '127.0.0.1'
         else:
             return '127.0.0.1'
     else:
