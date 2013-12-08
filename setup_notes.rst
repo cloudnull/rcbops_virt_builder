@@ -45,6 +45,7 @@ Setup Script
 
 Get the setup scripts and then run the setup script::
 
+    apt-get install python-netifaces
     git clone https://github.com/cloudnull/rcbops_virt_builder
     pushd rcbops_virt_builder
     bash ./virt-setup.sh
@@ -86,7 +87,7 @@ Run setup for Openstack exports::
     export CHEF_PW="Passw0rd"
 
     # Set an override for my roles
-    export RUN_LIST="role[allinone],role[single-network-node],role[heat-all],role[cinder-all]"
+    export RUN_LIST="role[allinone],role[heat-all],role[cinder-all]"
 
     # Add Some default Images
     export UBUNTU_IMAGE=False
@@ -94,6 +95,9 @@ Run setup for Openstack exports::
 
 
 If using Neutron add the following::
+
+    # Set an override for my roles
+    export RUN_LIST="role[allinone],role[single-network-node],role[heat-all],role[cinder-all]"
 
     # Setup for Neutron
     export NEUTRON_NAME="neutron"
