@@ -282,6 +282,7 @@ function start_vm() {
   reset_rabbitmq
   restart_rabbitmq
   chef_rebuild_group
+  sleep 5
   reset_chef_env
   echo "Running chef-client"
   retryerator chef-client

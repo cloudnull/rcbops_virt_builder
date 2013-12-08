@@ -21,29 +21,24 @@
 import ConfigParser
 import json
 import tempfile
+import netifaces
 import os
-import subprocess
 import sys
 
 
-def _get_network(json_data, ifaces, override=False):
+def _get_network(iface, override=False):
     """Get and set network interfaces."""
 
     if override is True:
         return '172.16.151.0/24'
     else:
-        jdi = json_data['network']['interfaces']
-        device = jdi.get(ifaces['iface1'], jdi.get(ifaces['iface2']))
-        if 'arp' not in device:
-            device = jdi.get(ifaces['iface2'])
-
-        if device is not None:
-            if device.get('routes'):
-                for net in device['routes']:
-                    if 'scope' in net:
-                        return net.get('destination', '172.16.151.0/24')
-                else:
-                    return '172.16.151.0/24'
+        ips = netifaces.ifaddresses(iface)[netifaces.AF_INET]
+        ip_list = [ip for ip in ips
+                   if 'addr' in ip and not ip['addr'].startswith('172.16.0')]
+        if ip_list:
+            if 'addr' in ip_list[0]:
+                ip = ip_list[0]['addr']
+                return '%s/24' % '.'.join(ip.split('.')[:-1] + ['0'])
             else:
                 return '172.16.151.0/24'
         else:
@@ -65,6 +60,15 @@ def _get_config(config_file='/opt/rebuilder.ini'):
         raise SystemExit('Config file %s does not exist.' % config_file)
 
 
+def _bridge_check(iface):
+    interfaces = netifaces.interfaces()
+    _iface = 'br%s' % iface[-1]
+    if _iface in interfaces:
+        return _iface
+    else:
+        return iface
+
+
 if __name__ == '__main__':
     # Run the Munger
     if len(sys.argv) > 1:
@@ -75,15 +79,6 @@ if __name__ == '__main__':
             override = False
     else:
         raise SystemExit('No Arguments Input file specified.')
-
-    # Open Ohai and get some data
-    ohai_popen = subprocess.Popen(
-        ['ohai', '-l', 'fatal'], stdout=subprocess.PIPE
-    )
-    ohai = ohai_popen.communicate()
-
-    # Load Ohai data as a Dict
-    data = json.loads(ohai[0])
 
     # Open passed JSON file
     with open(input_file, 'rb') as knife_env:
@@ -108,24 +103,18 @@ if __name__ == '__main__':
 
     # Grab the device from the config file.
     rebuild_data = _get_config()
-    public_iface = rebuild_data.get('public_device')
-    user_iface = rebuild_data.get('user_device')
+    public_iface = _bridge_check(iface=rebuild_data.get('public_device'))
+    user_iface = _bridge_check(iface=rebuild_data.get('user_device'))
 
     # Get and set Networks
     networks = overrides.get('osops_networks')
-    networks['public'] = _get_network(json_data=data,
-                                      ifaces={'iface1': public_iface,
-                                              'iface2': 'br0'},
+    networks['public'] = _get_network(iface=public_iface,
                                       override=override)
 
-    networks['management'] = _get_network(json_data=data,
-                                          ifaces={'iface1': public_iface,
-                                                  'iface2': 'br0'},
+    networks['management'] = _get_network(iface=public_iface,
                                           override=override)
 
-    networks['nova'] = _get_network(json_data=data,
-                                    ifaces={'iface1': user_iface,
-                                            'iface2': 'lo'},
+    networks['nova'] = _get_network(iface=user_iface,
                                     override=override)
 
     # Make sure Heat workers are set back to basics

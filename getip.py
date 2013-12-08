@@ -19,50 +19,38 @@
 """Return the IPv4 Address for a user device as found in ohai."""
 
 import ConfigParser
-import subprocess
-import json
+import netifaces
 import os
 import sys
 
 
-def getip(device, retry=0):
+def getip(device):
     """Get the IPv4 Address for the Device."""
 
-    # Open Ohai and get some data
-    ohai_popen = subprocess.Popen(
-        ['ohai', '-l', 'fatal'], stdout=subprocess.PIPE
-    )
-    ohai = ohai_popen.communicate()
-
-    # Load the aata as JSON
-    data = json.loads(ohai[0])
-
-    num = device[-1]
-
-    eths = data['network']['interfaces']
-    eth = eths.get(device, eths.get('lo'))
-    if eth is None:
-        raise SystemExit('No Device found for "%s"' % device)
-    else:
-        addresses = eth.get('addresses')
-        if addresses is None:
-            raise SystemExit('No addresses found for "%s"' % device)
-    # parse the data and print the value
-    for key, value in addresses.items():
-        if 'prefixlen' in value and value['prefixlen'] <= '24':
-            # Key found, print the value
-            if not key.startswith('172.16.0'):
-                print(key)
-                break
-    else:
-        if retry > 1:
-            # No key found print error
-            raise SystemExit('No IPv4 address found')
+    ips = netifaces.ifaddresses(device)[netifaces.AF_INET]
+    ip_list = [ip for ip in ips
+               if 'addr' in ip and not ip['addr'].startswith('172.16.0')]
+    if ip_list:
+        if 'addr' in ip_list[0]:
+            return ip_list[0]['addr']
         else:
-            num = device[-1]
-            retry += 1
-            bridge_device = 'br%s' % num
-            getip(bridge_device, retry=retry)
+            return '127.0.0.1'
+    else:
+        return '127.0.0.1'
+
+
+def _bridge_check(iface):
+    """Check to see if an interface exists and if a bridged devices exists."""
+
+    interfaces = netifaces.interfaces()
+    if iface in interfaces:
+        _iface = 'br%s' % iface[-1]
+        if _iface in interfaces:
+            return _iface
+        else:
+            return iface
+    else:
+        raise SystemExit('Interface "%s" not found' % iface)
 
 
 def _get_config(config_file='/opt/rebuilder.ini'):
@@ -82,6 +70,19 @@ def _get_config(config_file='/opt/rebuilder.ini'):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        getip(device=sys.argv[1])
+        print(
+            getip(
+                device=_bridge_check(
+                    iface=sys.argv[1]
+                )
+            )
+        )
     else:
-        getip(device=_get_config().get('user_device'))
+        ifaces = _get_config()
+        print(
+            getip(
+                device=_bridge_check(
+                    iface=ifaces.get('user_device')
+                )
+            )
+        )
