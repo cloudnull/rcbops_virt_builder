@@ -25,7 +25,7 @@ import os
 import sys
 
 
-def getip(device):
+def getip(device, retry=0):
     """Get the IPv4 Address for the Device."""
 
     # Open Ohai and get some data
@@ -38,8 +38,9 @@ def getip(device):
     data = json.loads(ohai[0])
 
     num = device[-1]
+
     eths = data['network']['interfaces']
-    eth = eths.get(device, eths.get('br%s' % num, eths.get('lo')))
+    eth = eths.get(device, eths.get('lo'))
     if eth is None:
         raise SystemExit('No Device found for "%s"' % device)
     else:
@@ -50,11 +51,18 @@ def getip(device):
     for key, value in addresses.items():
         if 'prefixlen' in value and value['prefixlen'] <= '24':
             # Key found, print the value
-            print(key)
-            break
+            if not key.startswith('172.16.0'):
+                print(key)
+                break
     else:
-        # No key found print error
-        raise SystemExit('No IPv4 address found')
+        if retry > 1:
+            # No key found print error
+            raise SystemExit('No IPv4 address found')
+        else:
+            num = device[-1]
+            retry += 1
+            bridge_device = 'br%s' % num
+            getip(bridge_device, retry=retry)
 
 
 def _get_config(config_file='/opt/rebuilder.ini'):
