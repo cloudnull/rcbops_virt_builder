@@ -37,6 +37,11 @@ Make your default network interfaces file look like this::
       netmask 255.255.255.0
 
 
+After changing the network scheme, reboot::
+
+    shutdown -rF now
+
+
 Now go install your GUEST additions for the Desktop Hypervisor you are using.
 
 
@@ -115,6 +120,7 @@ Now run the installation script::
     knife environment show allinoneinone -fj > /opt/vm-rebuilder/base.json
     # backup the new motd
     cp /etc/motd /etc/motd.old
+    service rebuild-env force-rebuild
     popd
 
 
